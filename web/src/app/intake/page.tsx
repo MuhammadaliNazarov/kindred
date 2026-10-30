@@ -60,7 +60,7 @@ function parseAcv(text: string): number | null {
   return Math.round(n);
 }
 
-// Finds a URL or a bare domain (expedite.now, acme.io/pricing). Skips file names like node.js and emails.
+// Finds a URL or a bare domain (acme.io, acme.io/pricing). Skips file names like node.js and emails.
 const URL_RE = /https?:\/\/[^\s,]+|(?:www\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,24}(?:\/[^\s,]*)?/gi;
 const NOT_TLD = new Set(["js", "ts", "jsx", "tsx", "py", "md", "txt", "json", "sh", "csv", "pdf", "png", "jpg"]);
 
@@ -89,7 +89,7 @@ function nameFromUrl(href: string): string {
 
 const trimSep = (s: string) => s.replace(/^[\s,;:—–-]+|[\s,;:—–-]+$/g, "").trim();
 
-// "expedite.now, Expedite, agentic law firm…" → url, name "Expedite", description = the rest.
+// "acme.io, Acme, payroll for remote teams…" → url, name "Acme", description = the rest.
 function parseBasics(text: string): { url: string; name: string; description: string } {
   const found = findUrl(text);
   const raw = found ? text.replace(found.raw, " ").replace(/\s{2,}/g, " ") : text;

@@ -121,7 +121,7 @@ def _search_pack(name: str, dom: str, context: str = "") -> list[Source]:
                 continue
             ctx = {w for w in re.findall(r"[a-z]{5,}", context.lower())} - {name.lower(), "about", "their", "which", "would", "there"}
             if dom not in blob and len(ctx & set(re.findall(r"[a-z]{5,}", blob))) < 3:
-                continue  # same name, different company (e.g. "expedite" freight shipping)
+                continue  # same name, different company (e.g. a namesake in another industry)
             sents = [x for x in re.split(r"(?<=[.!?])\s+", text) if 30 <= len(x) <= 260] or ([text[:240]] if text else [])
             sents.sort(key=lambda x: -(key in x.lower()) - 0.5 * bool(AUDIENCE.search(x)))
             if sents:
