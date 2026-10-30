@@ -148,7 +148,7 @@ export function GraphPane({
       <div className="border-b border-neutral-200 px-4 py-2.5">
         <div className="font-serif text-[15px] text-neutral-900">{person ? person.name : company.name}</div>
         <div className="text-[11px] text-neutral-500">
-          {person ? `${person.title} · ${company.name}` : `${company.domain} · ${company.industry}`}
+          {person ? `${person.title} · ${company.name}` : `${company.domain} · ${company.industry.includes("no LLM") ? "AI / software" : company.industry}`}
         </div>
       </div>
 

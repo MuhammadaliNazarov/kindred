@@ -68,7 +68,7 @@ export function AccountsGrid(props: AccountsGridProps) {
         header: "Industry / NAICS",
         cell: ({ row }) => (
           <div className="min-w-0">
-            <div className="truncate">{row.original.industry}</div>
+            <div className="truncate">{row.original.industry.includes("no LLM") ? "AI / software" : row.original.industry}</div>
             <div className="font-mono text-[11px] text-neutral-500">{row.original.naics}</div>
           </div>
         ),

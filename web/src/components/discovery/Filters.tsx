@@ -74,7 +74,7 @@ export function Filters({
       <label className="flex items-center gap-1.5">
         <span className="text-neutral-500">Industry</span>
         <select
-          value={value.industry}
+          value={value.industry.includes("no LLM") ? "AI / software" : value.industry}
           onChange={(e) => onChange({ ...value, industry: e.target.value })}
           className="h-8 rounded-full border border-[#8a93a8] bg-white px-3 text-[12px]"
         >
