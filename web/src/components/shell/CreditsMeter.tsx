@@ -95,12 +95,12 @@ export function CreditsMeter() {
                   {USAGE_LABELS.map((u) => (
                     <tr key={u.key}>
                       <td className="py-0.5 text-neutral-600">{u.label}</td>
-                      <td className="py-0.5 text-right">{u.key === "lead_enriched" ? verified : credits.used[u.key]}</td>
+                      <td className="py-0.5 text-right">{u.key === "lead_enriched" ? verified : Math.round(credits.used[u.key] * 10) / 10}</td>
                     </tr>
                   ))}
                   <tr className="border-t border-neutral-200">
                     <td className="pt-1 text-neutral-600">Used of granted</td>
-                    <td className="pt-1 text-right">{totalUsed}</td>
+                    <td className="pt-1 text-right">{Math.round(Number(totalUsed) * 10) / 10} credits</td>
                   </tr>
                 </tbody>
               </table>

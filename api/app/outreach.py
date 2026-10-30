@@ -27,7 +27,10 @@ Rules: open with the ONE cited signal (say what and when, in plain words); only 
 mention the warm path connector by first name if one exists; no links except the product URL given; no emails/phone numbers;
 no tracking links. Variant A = signal-led subject; Variant B = warm-path/question-led subject.
 Follow the "hook" (how step 1 opens) and "cta" (the closing question) given in the input exactly. Step 1 email body: 30-90 words,
-name the company, and end with the CTA as a question (sign-off after it is fine). Never promise or guarantee outcomes.
+name the company, and end with the CTA as a question. Never promise or guarantee outcomes.
+House style for both emails (from our reviewer): open with "Congratulations on ..." the cited signal (the raise, the launch, the new hire;
+for a job post: congratulate them on growing the team); spend the body on the job posting or the problem it reveals, not on us;
+then the CTA question; then sign off exactly as three lines: "Yours sincerely," / sender name / sender role (both given in the input).
 Return {"touches":[{"step":1,"channel":"email","subject":str,"body":str},{"step":2,"channel":"email","subject":str,"body":str},{"step":3,"channel":"linkedin","body":str}]}"""
 
 
@@ -36,6 +39,22 @@ def _first(name: str) -> str:
     if not name or " @ " in name or "(to find)" in name:
         return "there"
     return name.split()[0]
+
+
+SENDER_NAME = os.getenv("SENDER_NAME", "Ali")
+SENDER_ROLE = os.getenv("SENDER_ROLE", "GTM Lead, Tenki")
+SIGNATURE = f"Yours sincerely,\n{SENDER_NAME}\n{SENDER_ROLE}"
+
+
+def _congrats(co, sig) -> str:
+    t = sig.type
+    if t == "funding":
+        return f"Congratulations on the raise at {co.name}!"
+    if t in ("job_post", "exec_hire"):
+        return f"Congratulations on growing the {co.name} team!"
+    if t == "launch":
+        return f"Congratulations on the launch at {co.name}!"
+    return f"Congratulations on the progress at {co.name}!"
 
 
 def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | None = None) -> dict:
@@ -51,11 +70,12 @@ def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | N
         s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
     hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmpath_hook", "call")
     cta_line = bandit.CTAS.get(cta, "Worth a short look?")
-    body1 = (f"Hi {_first(person.name)},\n\n{warm if hook == 'warmpath_hook' else ''}{sig_line}\n\n"
-             f"Teams in that spot often build sandbox infra for agent code themselves. {product} ({product_url}) gives you that as an API, "
-             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmpath_hook' else ''}{cta_line}\n\n— Ali")
-    body2 = (f"Hi {_first(person.name)}, following up on the {sig.type.replace('_', ' ')} from {sig.date}. "
-             f"If the sandbox work is already scoped, happy to share how {product} would fit. Reply 'yes' and I'll send a short plan.")
+    congrats = _congrats(co, sig)
+    body1 = (f"Hi {_first(person.name)},\n\n{congrats} {warm if hook == 'warmpath_hook' else ''}{sig_line}\n\n"
+             f"A {sig.type.replace('_', ' ')} like that usually means someone has to build and run sandbox infra for agent code. {product} ({product_url}) gives you that as an API, "
+             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmpath_hook' else ''}{cta_line}\n\n{SIGNATURE}")
+    body2 = (f"Hi {_first(person.name)},\n\n{congrats} Following up on the {sig.type.replace('_', ' ')} from {sig.date}: "
+             f"if the sandbox work is already scoped, I can share how {product} would fit. Would a short plan help?\n\n{SIGNATURE}")
     body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
     return {"touches": [
         {"step": 1, "channel": "email", "subject": s1, "body": body1},
@@ -168,7 +188,7 @@ def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
     product = state.intake.product_name if state.intake else "Tenki"
     product_url = state.intake.product_url if state.intake else "https://tenki.cloud"
     rules = PERSONA_RULES.get("c-level" if "c" in p.seniority.lower()[:1] else "ic" if p.seniority.lower() == "ic" else "director")
-    prompt = json.dumps({"variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
+    prompt = json.dumps({"sender": {"name": SENDER_NAME, "role": SENDER_ROLE}, "variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
                          "signal": {"type": sig.type, "summary": sig.summary, "date": sig.date, "source_url": sig.source.url, "quote": sig.source.quote},
                          "warm_path": [h.model_dump() for h in hops], "persona_rules": rules,
                          "hook": bandit.HOOKS[hook], "cta": bandit.CTAS[cta]})

@@ -2,7 +2,8 @@
 GRPO reward in api/rl/grpo_outreach.py, so "the HITL verifier is the GRPO reward" is literally true.
 
 Dependency-free on purpose (only stdlib) so the RL script can import it on a GPU box.
-Max score = 4.5: company 1 + signal 1 + question CTA 1 + length 0.5 + claim sourced 1.
+Max score = 5.5: company 1 + signal 1 + question CTA 1 + length 0.5 + claim sourced 1 + congratulates 0.5 + signed with name+role 0.5.
+The last two came from a human reviewer (Ali, 30 Oct): human feedback turned into reward rules.
 Penalties: outcome-guarantee words -2, any non-allowed link -1.
 """
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
-MAX_SCORE = 4.5
+MAX_SCORE = 5.5
 BANNED = re.compile(r"\b(guarantee[ds]?|guaranteed|100%|risk[- ]free|promise[ds]?|zero risk|never fail)\b", re.I)
 URL_RE = re.compile(r"https?://[^\s)>\]]+", re.I)
 STOP = set("the a an and or to of in on for at by with is are was were be this that it its your you we our i from as about".split())
@@ -22,9 +23,27 @@ def _words(s: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9$%]+", s.lower()) if w not in STOP and len(w) > 2}
 
 
+SINCERELY = re.compile(r"\byours sincerely\b|\bsincerely\b|\bkind regards\b|\bbest regards\b", re.I)
+CONGRATS = re.compile(r"\bcongrat", re.I)
+
+
+def _signed_with_role(text: str) -> bool:
+    """'Yours sincerely,' then a name line and a role line (e.g. 'Ali' / 'GTM Lead, Tenki')."""
+    lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
+    for i, l in enumerate(lines):
+        if SINCERELY.search(l):
+            rest = lines[i + 1:]
+            return len(rest) >= 2 or (len(rest) == 1 and "," in rest[0])
+    return False
+
+
 def _strip_signoff(text: str) -> str:
-    """Drop trailing sign-off lines ("— Ali") and a trailing bare URL so the CTA check sees the real last sentence."""
+    """Drop trailing sign-off lines ("— Ali", "Yours sincerely, Ali, role") and a trailing bare URL so the CTA check sees the real last sentence."""
     lines = [l for l in text.strip().splitlines() if l.strip()]
+    for i, l in enumerate(lines):
+        if SINCERELY.search(l):
+            lines = lines[:i]
+            break
     while lines and (SIGNOFF.match(lines[-1]) or (len(lines[-1].split()) <= 2 and not lines[-1].strip().endswith("?"))):
         lines.pop()
     out = "\n".join(lines).strip()
@@ -61,6 +80,8 @@ def checks(text: str, company: str, signal: str, context: str | None = None,
         {"name": f"30–90 words ({words})", "pass": 30 <= words <= 90, "weight": 0.5, "fail_weight": -0.5},
         {"name": "every claim has a source", "pass": not unsupported, "weight": 1.0,
          "detail": " | ".join(unsupported) or None},
+        {"name": "opens with congratulations", "pass": bool(CONGRATS.search(" ".join(text.split()[:25]))), "weight": 0.5},
+        {"name": "signed with name and role", "pass": _signed_with_role(text), "weight": 0.5},
         {"name": "no outcome guarantees", "pass": not BANNED.search(text), "weight": 0.0, "fail_weight": -2.0},
         {"name": "links only to allowed domains", "pass": not bad_links, "weight": 0.0, "fail_weight": -1.0,
          "detail": ", ".join(bad_links) or None},
