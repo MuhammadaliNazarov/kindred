@@ -43,6 +43,13 @@ def demo_key(x_demo_key: Optional[str] = Header(default=None)):
 guard = [Depends(demo_key)]
 
 
+@app.get("/")
+def root():
+    return {"service": "Kindred API", "about": "Backend for Kindred, the AI GTM engine that proves every claim.",
+            "app": "https://kindred-sable-gamma.vercel.app", "docs": "/docs", "health": "/health",
+            "code": "https://github.com/MuhammadaliNazarov/kindred"}
+
+
 @app.get("/health")
 def health():
     return {
