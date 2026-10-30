@@ -189,7 +189,7 @@ export default function IntakePage() {
           <h1 className="k-hero">
             Tell us what you <span className="k-accent">sell</span>
           </h1>
-          <p className="k-sub">The agent asks for what is missing and fills the form as you answer.</p>
+          <p className="k-sub">Answer Kindred AI in plain words. It fills in the profile below, and you can edit anything.</p>
         </div>
         {/* One primary at a time: the demo until the basics exist, then Generate ICP. */}
         <div className="flex shrink-0 items-center gap-3">
@@ -275,11 +275,11 @@ export default function IntakePage() {
       {/* Structured form */}
       <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
         <div className="glass-band flex h-12 shrink-0 items-center justify-between px-5">
-          <h2 className="k-h3">Intake</h2>
+          <h2 className="k-h3">What Kindred understood</h2><span className="ml-2 text-[12px] text-neutral-500">fills in as you chat · edit anything</span>
           <span className="text-[12px] tabular-nums text-neutral-400">{5 - missing.length} of 5 complete</span>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-2 [&>fieldset+fieldset]:shadow-[inset_0_1px_0_#eef1f6]">
-          <Group title="Product" done={!missing.includes("basics")} flash={flash === "basics"}>
+          <Group title="Your product" done={!missing.includes("basics")} flash={flash === "basics"}>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Name" value={form.product_name} onChange={(v) => set("product_name", v)} />
               <Field label="URL" value={form.product_url} onChange={(v) => set("product_url", v)} mono />
@@ -287,10 +287,10 @@ export default function IntakePage() {
             <Field label="Description" value={form.description} onChange={(v) => set("description", v)} area />
             <Field label="Features (comma separated)" value={form.features.join(", ")} onChange={(v) => set("features", list(v))} />
           </Group>
-          <Group title="Best customer" done={!missing.includes("best")} flash={flash === "best"}>
+          <Group title="Your best customer" done={!missing.includes("best")} flash={flash === "best"}>
             <Field label="Reference customers" value={form.reference_customers.join(", ")} onChange={(v) => set("reference_customers", list(v))} />
           </Group>
-          <Group title="Price" done={!missing.includes("acv")} flash={flash === "acv"}>
+          <Group title="Price per customer (per year)" done={!missing.includes("acv")} flash={flash === "acv"}>
             <div className="grid grid-cols-[140px_1fr] gap-3">
               <Field
                 label="ACV (USD)"
@@ -304,10 +304,10 @@ export default function IntakePage() {
           <Group title="A deal you lost" done={!missing.includes("lost")} flash={flash === "lost"}>
             <Field label="What happened" value={form.lost_deal ?? ""} onChange={(v) => set("lost_deal", v)} area />
           </Group>
-          <Group title="Your past employers / schools" done={!missing.includes("past")} flash={flash === "past"} hint="Powers warm paths">
+          <Group title="Your past employers and schools" done={!missing.includes("past")} flash={flash === "past"} hint="Used to find warm intros">
             <Field label="Comma separated" value={(form.past_employers ?? []).join(", ")} onChange={(v) => set("past_employers", list(v))} />
           </Group>
-          <Group title="Constraints" done flash={false}>
+          <Group title="Who to avoid" done flash={false}>
             <Field label="Rules the agents must follow" value={form.constraints.join(", ")} onChange={(v) => set("constraints", list(v))} />
           </Group>
         </div>
