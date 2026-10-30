@@ -306,7 +306,8 @@ export function streamThinking(onStep: (s: ThinkingStep) => void): () => void {
         return;
       }
       const s = seedThinking[i++];
-      onStep({ ...s, id: `${s.id}-${Date.now()}`, at: new Date().toISOString() });
+      // Stable id per session so a re-subscribed stream (StrictMode, remount) can't duplicate a step.
+      onStep({ ...s, id: `seed-${s.id}`, at: new Date().toISOString() });
     }, 1500);
   };
 
@@ -387,7 +388,7 @@ function withVerifier(t: Touch): Touch {
   const co = db.companies.find((c) => c.signals?.some((s) => s.id === t.signal_id));
   const sig = co?.signals.find((s) => s.id === t.signal_id);
   if (!co || !sig) return t;
-  const v = localVerify(t.body, co.name, `${sig.summary} ${sig.type.replace("_", " ")}`, `${sig.source?.quote ?? ""} ${sig.date}`, [co.domain, "tenki.cloud"]);
+  const v = localVerify(t.body, co.name, `${sig.summary} ${sig.type.replace("_", " ")}`, `${sig.source?.quote ?? ""} ${sig.date}`, [co.domain ?? "", "tenki.cloud"].filter(Boolean));
   return { ...t, review: { ...t.review, score: v.score, max_score: v.max, checks: v.checks, notes: t.review.notes.startsWith("verifier") ? t.review.notes : `verifier ${v.score}/${v.max}. ${t.review.notes}` } };
 }
 

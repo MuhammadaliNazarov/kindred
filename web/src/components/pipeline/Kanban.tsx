@@ -4,7 +4,7 @@ import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSe
 import clsx from "clsx";
 import { Bot, User } from "lucide-react";
 import type { Company, Lead, Person, Stage } from "@/lib/types";
-import { Badge, TierBadge, fmtTime } from "@/components/outreach/bits";
+import { Badge, Skeleton, TierBadge, fmtTime } from "@/components/outreach/bits";
 
 export type Column = { id: "matched" | "contacted" | "replied" | "meeting" | "closed"; label: string; stages: Stage[] };
 
@@ -21,9 +21,10 @@ type Props = {
   people: Map<string, Person>;
   companies: Map<string, Company>;
   onMove: (lead: Lead, stage: Stage) => void;
+  loading?: boolean;
 };
 
-export function Kanban({ leads, people, companies, onMove }: Props) {
+export function Kanban({ leads, people, companies, onMove, loading }: Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   function onDragEnd(e: DragEndEvent) {
@@ -36,42 +37,64 @@ export function Kanban({ leads, people, companies, onMove }: Props) {
 
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-      <div className="grid grid-cols-5 gap-px overflow-x-auto border border-neutral-200 bg-neutral-200">
-        {COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            col={col}
-            leads={leads.filter((l) => col.stages.includes(l.stage))}
-            people={people}
-            companies={companies}
-            onMove={onMove}
-          />
-        ))}
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[860px] grid-cols-5 gap-px border border-neutral-200 bg-neutral-200">
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.id}
+              col={col}
+              leads={leads.filter((l) => col.stages.includes(l.stage))}
+              people={people}
+              companies={companies}
+              onMove={onMove}
+              loading={loading}
+            />
+          ))}
+        </div>
       </div>
     </DndContext>
   );
 }
 
-function KanbanColumn({ col, leads, people, companies, onMove }: { col: Column } & Props) {
+function KanbanColumn({ col, leads, people, companies, onMove, loading }: { col: Column } & Props) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
   return (
-    <div ref={setNodeRef} className={clsx("flex min-h-[320px] min-w-[200px] flex-col bg-white", isOver && "bg-emerald-50/60")}>
+    <div
+      ref={setNodeRef}
+      className={clsx("flex min-h-[320px] min-w-0 flex-col bg-white transition-colors duration-150", isOver && "bg-emerald-50/70")}
+    >
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
         <span className="font-serif text-[14px] text-neutral-900">{col.label}</span>
-        <span className="text-[12px] tabular-nums text-neutral-500">{leads.length}</span>
+        <span className="min-w-5 rounded-full bg-neutral-100 px-1.5 text-center text-[11px] tabular-nums text-neutral-600">{leads.length}</span>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-2">
-        {leads.map((l) => (
-          <LeadCard key={l.id} lead={l} person={people.get(l.person_id)} company={companies.get(l.company_id)} onMove={onMove} />
+        {loading && leads.length === 0 && (
+          <>
+            <Skeleton className="h-[74px]" />
+            <Skeleton className="h-[74px] opacity-60" />
+          </>
+        )}
+        {!loading && leads.length === 0 && (
+          <div
+            className={clsx(
+              "flex flex-1 items-center justify-center rounded-sm border border-dashed text-[11px] transition-colors",
+              isOver ? "border-emerald-400 text-emerald-700" : "border-neutral-200 text-neutral-400",
+            )}
+          >
+            {isOver ? "Release to move here" : "Drop a card here"}
+          </div>
+        )}
+        {leads.map((l, i) => (
+          <LeadCard key={l.id} index={i} lead={l} person={people.get(l.person_id)} company={companies.get(l.company_id)} onMove={onMove} />
         ))}
       </div>
     </div>
   );
 }
 
-function LeadCard({ lead, person, company, onMove }: { lead: Lead; person?: Person; company?: Company; onMove: Props["onMove"] }) {
+function LeadCard({ lead, person, company, onMove, index }: { lead: Lead; person?: Person; company?: Company; onMove: Props["onMove"]; index: number }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: lead.id });
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
+  const style = { ...(transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : {}), "--i": index } as React.CSSProperties;
   const closed = lead.stage === "closed_won" || lead.stage === "closed_lost";
   return (
     <div
@@ -80,8 +103,9 @@ function LeadCard({ lead, person, company, onMove }: { lead: Lead; person?: Pers
       {...listeners}
       {...attributes}
       className={clsx(
-        "cursor-grab touch-none rounded-sm border border-neutral-200 bg-white px-2.5 py-2 text-[12px] active:cursor-grabbing",
-        isDragging && "z-10 border-neutral-900 shadow-md",
+        "wp-rise cursor-grab touch-none rounded-sm border border-neutral-200 bg-white px-2.5 py-2 text-[12px] active:cursor-grabbing",
+        "transition-[box-shadow,border-color] duration-150 hover:border-neutral-300 hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]",
+        isDragging && "z-10 rotate-[0.5deg] border-neutral-900 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.3)]",
       )}
     >
       <div className="flex items-start justify-between gap-1">
@@ -91,7 +115,7 @@ function LeadCard({ lead, person, company, onMove }: { lead: Lead; person?: Pers
         </div>
         <span
           className={clsx(
-            "inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-px text-[10px] font-semibold",
+            "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 py-px text-[10px] font-semibold",
             lead.owner === "ai" ? "bg-neutral-100 text-neutral-700" : "bg-neutral-900 text-white",
           )}
           title={lead.owner === "ai" ? "Last moved by an AI agent" : "Last moved by a rep"}
@@ -102,8 +126,8 @@ function LeadCard({ lead, person, company, onMove }: { lead: Lead; person?: Pers
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         {company && <TierBadge tier={company.tier} />}
-        {company && <Badge>{company.score}</Badge>}
-        <Badge>Var {lead.variant}</Badge>
+        {company && <Badge>{`${company.score}`}</Badge>}
+        <Badge>{`Var ${lead.variant}`}</Badge>
         {closed && (
           <button
             type="button"

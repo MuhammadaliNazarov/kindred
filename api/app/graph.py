@@ -82,7 +82,7 @@ def upsert_me(name: str = "You") -> None:
 def upsert_company(c) -> None:
     _run(
         "MERGE (x:Company {id:$id}) SET x.name=$n, x.domain=$d, x.industry=$i, x.score=$s, x.tier=$t",
-        {"id": c.id, "n": c.name, "d": c.domain, "i": c.industry, "s": int(c.score), "t": c.tier},
+        {"id": c.id, "n": c.name, "d": c.domain or "", "i": c.industry, "s": int(c.score), "t": c.tier},
     )
     _run(
         "MATCH (x:Company {id:$id}), (p:Product {id:$p}) MERGE (x)-[r:matched_to]->(p) SET r.score=$s",
@@ -93,6 +93,13 @@ def upsert_company(c) -> None:
         _run("MATCH (x:Company {id:$id}), (k:Competitor {id:$k}) MERGE (x)-[:uses]->(k)", {"id": c.id, "k": _cid(comp)})
     for s in c.signals:
         upsert_signal(s)
+
+
+def delete_company(cid: str) -> None:
+    """Remove a company, its signals and the prospects that work there (used to drop seed accounts once real ones exist)."""
+    _run("MATCH (c:Company {id:$id})-[:has_signal]->(g:Signal) DETACH DELETE g", {"id": cid})
+    _run("MATCH (p:Person)-[:works_at]->(c:Company {id:$id}) WHERE p.kind = 'prospect' DETACH DELETE p", {"id": cid})
+    _run("MATCH (c:Company {id:$id}) DETACH DELETE c", {"id": cid})
 
 
 def ensure_company_stub(cid: str, name: str) -> None:

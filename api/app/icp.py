@@ -1,7 +1,11 @@
 """Intake → ICP (confidence per field) + 3 expansion segments with rationale/evidence."""
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from . import llm, state, thinking
 from .models import ICP, ExpansionSegment, Intake, Source
@@ -53,6 +57,105 @@ def fallback_icp(intake: Intake) -> dict:
     }
 
 
+# ---------------- field-level evidence (Tavily keyless → cached in api/data/cache/) ----------------
+CACHE_DIR = Path(__file__).resolve().parent.parent / "data" / "cache"
+MAX_SEARCHES = 20  # hard budget per ICP (11 fields + 3 segments ≈ 14)
+TOPIC = "sandboxes code execution AI agents infrastructure"
+_KEYWORDS = ("sandbox", "agent", "code execution", "untrusted code", "microvm", "firecracker", "isolat", "infrastructure", "e2b", "ephemeral", "container", "evals", "rl ")
+
+
+def _cache_path(query: str) -> Path:
+    return CACHE_DIR / f"icp_{hashlib.sha1(query.lower().encode()).hexdigest()[:16]}.json"
+
+
+def _best_quote(content: str) -> str:
+    """Pick the snippet sentence that best supports 'this segment buys sandboxes/agent infra'."""
+    text = re.sub(r"\s+", " ", content or "").strip()
+    sents = [x for x in re.split(r"(?<=[.!?])\s+", text) if 40 <= len(x) <= 400] or ([text] if text else [])
+    if not sents:
+        return ""
+    def score(x: str) -> float:  # keyword hits, minus markdown headings / elided snippets
+        return sum(k in x.lower() for k in _KEYWORDS) - 2 * ("[...]" in x or "..." in x) - 2 * x.lstrip().startswith(("#", "|", "*", "-"))
+    return max(sents, key=score).strip()[:220]
+
+
+def _evidence(query: str, limit: int = 2) -> list[Source]:
+    """1-2 sources for a query. Verified quotes first; if none verify, keep the top hit marked verified=False.
+    Cached on disk (search + validation) so re-runs of the same ICP cost 0 searches."""
+    from . import discovery, validator
+
+    cp = _cache_path(query)
+    try:
+        return [Source(**x) for x in json.loads(cp.read_text())["sources"]]
+    except Exception:
+        pass
+    hits = discovery.search(query, n=5)
+    verified, unverified = [], []
+    for h in hits:
+        if len(verified) >= limit or not h.get("url"):
+            break
+        quote = _best_quote(h.get("content", ""))
+        if not quote:
+            continue
+        src = Source(url=h["url"], title=h.get("title", "")[:160], quote=quote, fetched_at=thinking.now(), verified=False)
+        validator.validate(src, agent="icp")
+        (verified if src.verified else unverified).append(src)
+    out = verified[:limit] or unverified[:1]
+    if hits:  # don't cache an empty result (could be a rate-limit blip)
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cp.write_text(json.dumps({"query": query, "sources": [x.model_dump() for x in out]}, indent=1))
+        except Exception:
+            pass
+    return out
+
+
+def _adjust(conf: float, srcs: list[Source]) -> float:
+    """Confidence follows the evidence: verified source keeps it, unverified-only trims it, none caps it."""
+    if any(x.verified for x in srcs):
+        return round(min(conf, 0.95), 2)
+    if srcs:
+        return round(min(conf * 0.85, 0.75), 2)
+    return round(min(conf * 0.7, 0.55), 2)
+
+
+def _field_queries(icp: ICP) -> list[tuple[object, str]]:
+    q: list[tuple[object, str]] = []
+    for f in icp.industries[:3]:
+        q.append((f, f"{f.value.name} companies adopting {TOPIC}"))
+    sz = icp.company_size.value
+    q.append((icp.company_size, f"startups with {sz.min_headcount}-{sz.max_headcount} employees buying {TOPIC}"))
+    for f in icp.personas[:3]:
+        q.append((f, f"{f.value.title} evaluating {TOPIC}"))
+    for f in icp.triggers[:4]:
+        q.append((f, f"{f.value.description} {TOPIC}"[:380]))
+    return q
+
+
+def attach_sources(icp: ICP, exps_raw: list[dict]) -> list[list[Source]]:
+    """Attach 1-2 real sources (with quote) to every industry, persona, trigger and the size band, and gather the
+    3 expansion segments' evidence, in parallel within MAX_SEARCHES. Returns the segments' sources."""
+    from . import discovery
+
+    if not discovery.live():
+        return [[] for _ in exps_raw]
+    fields = _field_queries(icp)
+    seg_qs = [e.get("search_query") or f"{e['name']} {TOPIC}" for e in exps_raw]
+    budget = MAX_SEARCHES - len(seg_qs)
+    fields = fields[:budget]
+    thinking.emit("icp", "search", f"Sourcing {len(fields)} ICP fields + {len(seg_qs)} segments (≤{MAX_SEARCHES} searches, cached)")
+    with ThreadPoolExecutor(6) as ex:
+        results = list(ex.map(lambda q: _evidence(q), [q for _, q in fields] + seg_qs))
+    found = 0
+    for (f, _), srcs in zip(fields, results):
+        old = [x for x in (f.sources or []) if "example.com" not in x.url]
+        f.sources = (srcs or old) or None
+        f.confidence = _adjust(f.confidence, f.sources or [])
+        found += bool(f.sources)
+    thinking.emit("icp", "reason", f"Sources attached to {found}/{len(fields)} ICP fields; confidence lowered where none found")
+    return results[len(fields):]
+
+
 def run(intake: Intake) -> tuple[ICP, list[ExpansionSegment]]:
     thinking.emit("icp", "handoff", f"Planner → ICP agent: build ICP for {intake.product_name}")
     data, was_live = llm.json_call("icp", ICP_SYSTEM, "Intake:\n" + json.dumps(intake.model_dump(), indent=2), lambda: fallback_icp(intake))
@@ -64,17 +167,13 @@ def run(intake: Intake) -> tuple[ICP, list[ExpansionSegment]]:
         data = fallback_icp(intake)
         icp, exps_raw = ICP.model_validate(data["icp"]), data["expansions"]
     exps: list[ExpansionSegment] = []
-    from concurrent.futures import ThreadPoolExecutor
-
-    from . import discovery  # live evidence for the segment when a search key is set
-
-    with ThreadPoolExecutor(3) as ex:  # the 3 segments in parallel so /intake doesn't stall
-        evidence = list(ex.map(lambda e: discovery.evidence_for(e["search_query"], limit=2) if e.get("search_query") else [], exps_raw))
+    evidence = attach_sources(icp, exps_raw)  # live sources per ICP field + per segment (Tavily, cached)
     for i, (e, ev) in enumerate(zip(exps_raw, evidence), 1):
         sources: list[Source] = list(ev)
+        conf = _adjust(float(e.get("confidence", 0.5)), sources)
         if not sources and not was_live:
             sources = [_src(f"https://example.com/evidence/segment-{i}", f"{e['name']} (demo evidence)", e["rationale"][:90])]
-        exps.append(ExpansionSegment(id=f"seg{i}", name=e["name"], rationale=e["rationale"], confidence=float(e.get("confidence", 0.5)), sources=sources, status="suggested"))
+        exps.append(ExpansionSegment(id=f"seg{i}", name=e["name"], rationale=e["rationale"], confidence=conf, sources=sources, status="suggested"))
     thinking.emit("icp", "reason", f"ICP ready: {len(icp.industries)} industries, {len(icp.personas)} personas, {len(icp.triggers)} triggers; {len(exps)} expansion segments")
     with state.lock:
         state.intake, state.icp = intake, icp

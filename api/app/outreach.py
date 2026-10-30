@@ -32,7 +32,10 @@ Return {"touches":[{"step":1,"channel":"email","subject":str,"body":str},{"step"
 
 
 def _first(name: str) -> str:
-    return name.split()[0] if name else "there"
+    # Role-only buyers ("Head of Infrastructure @ Greptile") have no real name: never greet them as "Hi Head".
+    if not name or " @ " in name or "(to find)" in name:
+        return "there"
+    return name.split()[0]
 
 
 def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | None = None) -> dict:
@@ -92,7 +95,7 @@ def review(t: Touch, lead) -> Review:
         note = "Signal source is demo/unverified (verified:false). "
     else:
         note = ""
-    allowed = [co.domain if co else "", urlparse(state.intake.product_url).netloc if state.intake else "tenki.cloud"]
+    allowed = [(co.domain if co else "") or "", urlparse(state.intake.product_url).netloc if state.intake else "tenki.cloud"]
     v = verifier.verify(t.body, co.name if co else "", (sig.summary + " " + sig.type.replace("_", " ")) if sig else "",
                         context=ctx_txt, allowed_domains=allowed)
     vnote = f"verifier {v['score']}/{v['max']}. "
@@ -171,7 +174,9 @@ def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
                          "hook": bandit.HOOKS[hook], "cta": bandit.CTAS[cta]})
     fb = lambda: _fallback(p, co, sig, hops, lead.variant, product, product_url, arm)
     data = llm.json_call("builder", COPY_SYSTEM, prompt, fb)[0] if use_llm else fb()
-    if not isinstance(data, dict) or len(data.get("touches", [])) < 3:
+    ts = data.get("touches") if isinstance(data, dict) else None
+    if not isinstance(ts, list) or len(ts) < 3 or not all(isinstance(t, dict) and isinstance(t.get("body"), str) and t["body"].strip() for t in ts[:3]):
+        thinking.emit("builder", "reason", "LLM draft malformed (missing touch body) — using the deterministic template instead")
         data = _fallback(p, co, sig, hops, lead.variant, product, product_url, arm)
     # replace previous drafts for this lead (keep sent ones)
     for tid in [k for k, t in state.touches.items() if t.lead_id == lead_id and t.status != "sent"]:

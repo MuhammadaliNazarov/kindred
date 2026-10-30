@@ -23,9 +23,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [steps, setSteps] = useState<ThinkingStep[]>([]);
   const [credits, setCredits] = useState<Credits | null>(null);
   const seen = useRef(new Set<string>());
+  // Content fingerprint → last time we accepted it. Catches SSE replays and StrictMode double-streams
+  // that arrive with fresh ids but the same agent + text.
+  const recent = useRef(new Map<string, number>());
 
   const push = useCallback((step: ThinkingStep) => {
     if (seen.current.has(step.id)) return;
+    const fp = `${step.agent}|${step.kind}|${step.text}`;
+    const now = Date.now();
+    const last = recent.current.get(fp);
+    if (last !== undefined && now - last < 8000) return;
+    recent.current.set(fp, now);
     seen.current.add(step.id);
     setSteps((prev) => [step, ...prev].slice(0, MAX_STEPS)); // newest first
   }, []);

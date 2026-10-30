@@ -7,7 +7,7 @@ import { CheckCheck, Lock } from "lucide-react";
 import type { AuditEvent, Company, Lead, Person, Signal, ThinkingStep, Touch } from "@/lib/types";
 import { getCompanies, getLeads, getPeople, getTouches, reviewTouch } from "@/lib/api";
 import { useThinking } from "@/components/shell/context";
-import { Badge, Btn, TierBadge, fmtTime, uid } from "./bits";
+import { Badge, Btn, Skeleton, TierBadge, fmtTime, uid } from "./bits";
 import { TouchCard } from "./TouchCard";
 
 type Action = "approve" | "edit" | "reject";
@@ -199,20 +199,39 @@ export function OutreachQueue() {
             <span>Lead</span>
             <span>Drafts</span>
           </div>
-          {loading && <div className="px-4 py-3 text-[12px] text-neutral-500">Loading queue…</div>}
-          {!loading && rows.length === 0 && <div className="px-4 py-3 text-[12px] text-neutral-500">No drafts in the queue.</div>}
-          {rows.map((r) => {
+          {loading && (
+            <div className="space-y-px p-2" aria-busy>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-2 py-2">
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3 w-2/3" />
+                    <Skeleton className="h-2.5 w-1/2" />
+                  </div>
+                  <Skeleton className="h-5 w-6" />
+                </div>
+              ))}
+            </div>
+          )}
+          {!loading && rows.length === 0 && (
+            <div className="px-4 py-6 text-center text-[12px] text-neutral-500">
+              <div className="font-medium text-neutral-700">Queue is empty</div>
+              <div className="mt-1">Run Discovery and enrich a buyer; the Builder drafts a 3-touch sequence here.</div>
+            </div>
+          )}
+          {rows.map((r, i) => {
             const active = current?.lead.id === r.lead.id;
             return (
               <button
                 key={r.lead.id}
                 type="button"
                 onClick={() => setSelected(r.lead.id)}
+                style={{ "--i": i } as React.CSSProperties}
                 className={clsx(
-                  "grid w-full grid-cols-[1fr_auto] items-center gap-2 border-b border-neutral-100 px-4 py-2 text-left",
+                  "no-press wp-rise relative grid w-full grid-cols-[1fr_auto] items-center gap-2 border-b border-neutral-100 px-4 py-2 text-left",
                   active ? "bg-neutral-100" : "hover:bg-neutral-50",
                 )}
               >
+                {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-neutral-900" aria-hidden />}
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-medium text-neutral-900">{r.person?.name ?? r.lead.person_id}</div>
                   <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
@@ -244,8 +263,8 @@ export function OutreachQueue() {
                   {current.company ? `, ${current.company.name}` : ""}
                 </span>
                 {current.company && <TierBadge tier={current.company.tier} />}
-                {current.company && <Badge>Score {current.company.score}</Badge>}
-                <Badge>Variant {current.lead.variant}</Badge>
+                {current.company && <Badge>{`Score ${current.company.score}`}</Badge>}
+                <Badge>{`Variant ${current.lead.variant}`}</Badge>
                 {current.person?.enrichment.email && (
                   <Badge tone={current.person.enrichment.email_status === "valid" ? "ok" : "warn"}>
                     {current.person.enrichment.email} · {current.person.enrichment.email_status}
@@ -253,9 +272,10 @@ export function OutreachQueue() {
                 )}
               </div>
               <div className="grid gap-3">
-                {current.touches.map((t) => (
+                {current.touches.map((t, i) => (
                   <TouchCard
-                    key={t.id + t.status}
+                    key={t.id}
+                    index={i}
                     touch={t}
                     signal={signalById.get(t.signal_id)}
                     busy={busy === t.id}
@@ -267,7 +287,15 @@ export function OutreachQueue() {
               </div>
             </>
           ) : (
-            !loading && <div className="text-[13px] text-neutral-500">Select a lead.</div>
+            (loading ? (
+              <div className="space-y-3" aria-busy>
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-[220px]" />
+                <Skeleton className="h-[220px] opacity-60" />
+              </div>
+            ) : (
+              <div className="text-[13px] text-neutral-500">Select a lead.</div>
+            ))
           )}
 
           {/* Session audit */}

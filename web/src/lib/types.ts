@@ -47,10 +47,10 @@ export type Signal = {
 export type Company = {
   id: string;
   name: string;
-  domain: string;
+  domain: string | null;
   industry: string;
   naics: string;
-  headcount: number;
+  headcount: number | null;
   hq: string;
   fit: number; // 0–60
   intent: number; // 0–40

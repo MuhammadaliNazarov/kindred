@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import clsx from "clsx";
 import { AlertTriangle } from "lucide-react";
@@ -11,9 +12,34 @@ const USAGE_LABELS: { key: "lead_enriched" | "outreach_sent" | "graph_query"; la
   { key: "graph_query", label: "Graph queries" },
 ];
 
+/** A number that ticks when it changes (re-mounts the span so the keyframe replays). */
+function Tick({ value, className }: { value: number | string; className?: string }) {
+  const [key, setKey] = useState(0);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (prev.current !== value) {
+      prev.current = value;
+      setKey((k) => k + 1);
+    }
+  }, [value]);
+  return (
+    <span key={key} className={clsx("wp-tick tabular-nums", className)}>
+      {value}
+    </span>
+  );
+}
+
 export function CreditsMeter() {
   const { credits } = useCredits();
-  if (!credits) return <div className="h-6 w-48 animate-pulse rounded bg-neutral-100" />;
+  const wasBlocked = useRef(false);
+  const [ring, setRing] = useState(false);
+
+  useEffect(() => {
+    if (credits?.blocked && !wasBlocked.current) setRing(true);
+    wasBlocked.current = !!credits?.blocked;
+  }, [credits?.blocked]);
+
+  if (!credits) return <div className="wp-skeleton h-6 w-48" />;
 
   const pct = credits.granted > 0 ? Math.min(100, (credits.balance / credits.granted) * 100) : 0;
   const totalUsed = credits.granted - credits.balance;
@@ -23,26 +49,37 @@ export function CreditsMeter() {
   const low = pct < 15;
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-3">
       {credits.blocked && (
-        <span className="flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[12px] font-medium text-rose-700">
+        <span
+          className={clsx(
+            "wp-fade-in flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-rose-200 bg-rose-50 px-2 text-[12px] font-medium text-rose-700",
+            ring && "wp-pulse-ring",
+          )}
+          onAnimationEnd={() => setRing(false)}
+          role="status"
+        >
           <AlertTriangle className="h-3.5 w-3.5" />
-          Enrichment paused — out of credits
+          <span>Enrichment paused</span>
+          <span className="hidden font-normal text-rose-600 2xl:inline">· out of credits</span>
         </span>
       )}
       <Tooltip.Provider delayDuration={150}>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
-            <button className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-neutral-50" aria-label="Credits">
+            <button className="no-press flex h-7 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2 hover:bg-neutral-50" aria-label="Credits">
               <span className="text-[11px] uppercase tracking-wide text-neutral-500">Credits</span>
               <span className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-200">
                 <span
-                  className={clsx("block h-full rounded-full", credits.blocked ? "bg-rose-600" : low ? "bg-amber-500" : "bg-emerald-600")}
+                  className={clsx(
+                    "block h-full rounded-full transition-[width,background-color] duration-500 ease-out",
+                    credits.blocked ? "bg-rose-600" : low ? "bg-amber-500" : "bg-emerald-600",
+                  )}
                   style={{ width: `${pct}%` }}
                 />
               </span>
-              <span className={clsx("text-[12px] tabular-nums", credits.blocked && "text-rose-600")}>
-                {credits.balance}
+              <span className={clsx("text-[12px] tabular-nums", credits.blocked && "font-medium text-rose-600")}>
+                <Tick value={credits.balance} />
                 <span className="text-neutral-400"> / {credits.granted}</span>
               </span>
             </button>
@@ -50,7 +87,7 @@ export function CreditsMeter() {
           <Tooltip.Portal>
             <Tooltip.Content
               sideOffset={6}
-              className="z-50 w-56 rounded-md border border-neutral-200 bg-white p-3 text-[12px] shadow-sm"
+              className="z-50 w-56 rounded-md border border-neutral-200 bg-white p-3 text-[12px] shadow-md"
             >
               <div className="mb-2 font-medium">Usage by event (Flexprice)</div>
               <table className="w-full tabular-nums">
@@ -71,12 +108,12 @@ export function CreditsMeter() {
           </Tooltip.Portal>
         </Tooltip.Root>
       </Tooltip.Provider>
-      <div className="hidden items-center gap-2 text-[12px] text-neutral-600 lg:flex">
+      <div className="hidden shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-neutral-600 lg:flex">
         <span className="tabular-nums">
-          <span className="text-neutral-900">{verified}</span> verified leads
+          <Tick value={verified} className="text-neutral-900" /> verified
         </span>
         <span className="rounded-full border border-neutral-200 px-2 py-0.5 tabular-nums" title="Credits used ÷ verified leads">
-          {perLead === null ? "—" : `${perLead.toFixed(1)} credits`} per verified lead
+          {perLead === null ? "—" : `${perLead.toFixed(1)} cr`} / lead
         </span>
       </div>
     </div>

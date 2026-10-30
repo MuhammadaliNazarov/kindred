@@ -1,9 +1,17 @@
-"""Enrichment waterfall: Hunter (email-finder + verifier/MX) → Apollo → seed. Gated by Flexprice credits."""
+"""Enrichment waterfall: Hunter (email-finder + verifier/MX) → Apollo → free DNS tier. Gated by Flexprice credits.
+
+The free tier needs no paid key and only claims what it can prove: the company domain resolves and has real MX records
+(live DNS via dnspython). It never invents an email: email stays null, email_status "unknown", and a name-pattern
+guess is exposed only as `pattern_guess`, explicitly labelled as an unverified guess.
+"""
 from __future__ import annotations
 
 import hashlib
 import os
+import re
 
+import dns.exception
+import dns.resolver
 import httpx
 from fastapi import HTTPException
 
@@ -77,7 +85,49 @@ def _apollo(p: Person, domain: str) -> Enrichment | None:
         return None
 
 
+def _clean_domain(raw: str) -> str:
+    d = (raw or "").strip().lower()
+    d = re.sub(r"^[a-z]+://", "", d).split("/")[0].split("?")[0].split(":")[0]
+    return d[4:] if d.startswith("www.") else d
+
+
+def _dns(domain: str, rtype: str) -> list | None:
+    """Live lookup. [] = authoritative no-record (NXDOMAIN/NoAnswer); None = could not check (timeout/network)."""
+    try:
+        return list(dns.resolver.resolve(domain, rtype, lifetime=5.0))
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        return []
+    except (dns.exception.DNSException, OSError):
+        return None
+
+
+def _free(p: Person, raw_domain: str) -> Enrichment:
+    """No-key tier: verify domain + MX for real; never fabricate or 'verify' an email."""
+    domain = _clean_domain(raw_domain)
+    thinking.emit("enricher", "search", f"Free tier: DNS lookup {domain} (A + MX)")
+    a = _dns(domain, "A")
+    if a == []:
+        a = _dns(domain, "AAAA")
+    resolves = None if a is None else bool(a)
+    mx = _dns(domain, "MX")
+    hosts = [str(r.exchange).rstrip(".") for r in sorted(mx or [], key=lambda r: r.preference)]
+    hosts = [h for h in hosts if h]  # RFC 7505 null MX ("." ) = domain explicitly accepts no mail
+    mx_ok: bool | None = None if mx is None else bool(hosts)
+    guess = None
+    first, last = _split(p.name)
+    if mx_ok and "(to find)" not in p.name and " @ " not in p.name and first and last:
+        f, l = (re.sub(r"[^a-z]", "", x.lower()) for x in (first, last))
+        if f and l:
+            guess = f"{f}.{l}@{domain} (GUESS: common pattern, not verified)"
+    mx_txt = f"MX verified ({', '.join(hosts[:2])})" if mx_ok else ("no MX records" if mx_ok is False else "MX not checked (DNS error)")
+    verification = f"domain {'resolves' if resolves else 'does not resolve' if resolves is False else 'not checked'}; {mx_txt}; mailbox NOT verified (no Hunter/Apollo key)"
+    thinking.emit("enricher", "validate", f"{domain}: {verification}")
+    return Enrichment(email=None, email_status="unknown", mx_ok=mx_ok, linkedin_url=None, provider="dns", confidence=0.0,
+                      domain=domain, domain_resolves=resolves, mx_hosts=hosts, pattern_guess=guess, verification=verification)
+
+
 def _seed(p: Person, domain: str) -> Enrichment:
+    """Offline demo only (ENRICH_SEED=1). Fabricated data: never the default path."""
     first, last = _split(p.name)
     h = int(hashlib.md5(p.id.encode()).hexdigest(), 16)
     status = ["valid", "valid", "accept_all", "valid", "unknown"][h % 5]
@@ -93,16 +143,24 @@ def enrich_lead(lead_id: str) -> Person:
     if not p or not co:
         raise HTTPException(404, "person/company missing")
     billing.check("lead_enriched", lead_id=lead_id)  # 402 + "Enrichment paused — out of credits"
-    thinking.emit("planner", "handoff", f"Planner → Enricher: {p.name} @ {co.domain}")
+    thinking.emit("planner", "handoff", f"Planner → Enricher: {p.name} @ {co.domain or co.name}")
+    if not co.domain:
+        raise HTTPException(422, "company domain unknown (not found on the source page); enrichment refused rather than guessed")
     if not any(s.verified for s in co.sources + [g.source for g in co.signals]) and not co.domain.endswith("example.com"):
         raise HTTPException(422, "lead has no verified source; enrichment refused")
     e = _hunter(p, co.domain) or _apollo(p, co.domain)
-    if e is None:
-        thinking.emit("enricher", "reason", "No HUNTER/APOLLO result — using seeded enrichment")
+    if e is None and os.getenv("ENRICH_SEED") == "1":
+        thinking.emit("enricher", "reason", "ENRICH_SEED=1 — using seeded (fabricated) demo enrichment")
         e = _seed(p, co.domain)
+    if e is None:
+        thinking.emit("enricher", "reason", "No HUNTER/APOLLO result — free tier: verify domain + MX only, no email claimed")
+        e = _free(p, co.domain)
     p.enrichment = e
     billing.meter("lead_enriched", lead_id=lead_id, provider=e.provider)  # fired only after validation + enrichment succeed
-    state.log("ai", "enriched", f"{p.name}: {e.email} ({e.email_status}, MX {'ok' if e.mx_ok else '?'}) via {e.provider}", agent="enricher", lead_id=lead_id)
+    mx = "ok" if e.mx_ok else "fail" if e.mx_ok is False else "?"
+    msg = (f"{p.name}: {e.email} ({e.email_status}, MX {mx}) via {e.provider}" if e.email
+           else f"{p.name} @ {e.domain or co.domain}: no email claimed (unknown), MX {mx} via {e.provider}")
+    state.log("ai", "enriched", msg, agent="enricher", lead_id=lead_id)
     from . import graph
     graph.upsert_person(p.id, p.name, p.title, co.id)
     return p

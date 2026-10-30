@@ -10,6 +10,7 @@ type Props = {
   touch: Touch;
   signal?: Signal;
   busy?: boolean;
+  index?: number;
   onApprove: (t: Touch) => void;
   onEdit: (t: Touch, body: { subject?: string; body: string }) => void;
   onReject: (t: Touch) => void;
@@ -23,7 +24,7 @@ const STATUS_TONE: Record<Touch["status"], "neutral" | "ok" | "warn" | "fail" | 
   sent: "dark",
 };
 
-export function TouchCard({ touch, signal, busy, onApprove, onEdit, onReject }: Props) {
+export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, onReject }: Props) {
   const [editing, setEditing] = useState(false);
   const [subject, setSubject] = useState(touch.subject ?? "");
   const [body, setBody] = useState(touch.body);
@@ -44,7 +45,15 @@ export function TouchCard({ touch, signal, busy, onApprove, onEdit, onReject }: 
   }
 
   return (
-    <article className={clsx("rounded-sm border bg-white", decided ? "border-neutral-200 opacity-80" : "border-neutral-300")}>
+    <article
+      style={{ "--i": index } as React.CSSProperties}
+      className={clsx(
+        "wp-rise rounded-sm border bg-white transition-[opacity,border-color,box-shadow] duration-300",
+        decided ? "border-neutral-200 opacity-75" : "border-neutral-300 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_16px_-10px_rgba(0,0,0,0.12)]",
+        touch.status === "approved" || touch.status === "sent" ? "border-emerald-300" : "",
+        touch.status === "rejected" ? "border-rose-200" : "",
+      )}
+    >
       {/* Pinned why-now signal */}
       <div className="flex items-start gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2">
         <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
@@ -65,12 +74,16 @@ export function TouchCard({ touch, signal, busy, onApprove, onEdit, onReject }: 
             rel="noreferrer"
             title={signal.source.quote}
             className={clsx(
-              "inline-flex max-w-[220px] shrink-0 items-center gap-1 truncate rounded-sm border px-1.5 py-px text-[11px]",
-              signal.source.verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700",
+              "inline-flex max-w-[260px] shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px text-[11px] transition-colors",
+              signal.source.verified
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500"
+                : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400",
             )}
           >
-            <ExternalLink className="h-3 w-3 shrink-0" />
-            <span className="truncate">{signal.source.title || signal.source.url}</span>
+            {signal.source.verified ? <ShieldCheck className="h-3 w-3 shrink-0" /> : <ShieldAlert className="h-3 w-3 shrink-0" />}
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide">{signal.source.verified ? "Proved" : "Dropped"}</span>
+            <span className="truncate border-l border-black/15 pl-1.5">{signal.source.title || signal.source.url}</span>
+            <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
           </a>
         )}
       </div>
@@ -81,8 +94,8 @@ export function TouchCard({ touch, signal, busy, onApprove, onEdit, onReject }: 
         <span className="text-[12px] font-medium text-neutral-900">
           Step {touch.step} · {isLinkedIn ? "LinkedIn" : "Email"}
         </span>
-        <Badge>Variant {touch.variant}</Badge>
-        <span className="ml-auto">
+        <Badge>{`Variant ${touch.variant}`}</Badge>
+        <span key={touch.status} className="wp-tick ml-auto">
           <Badge tone={STATUS_TONE[touch.status]}>{touch.status}</Badge>
         </span>
       </div>

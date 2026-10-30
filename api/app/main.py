@@ -53,6 +53,7 @@ def health():
             "billing": "flexprice" if billing.live() else "local_ledger",
             "graph": "kuzu",
         },
+        "notes": {"llm": llm.detail()},  # e.g. "anthropic: 401 AuthenticationError" when the key was rejected and we fell through
         "counts": {"companies": len(state.companies), "people": len(state.people), "leads": len(state.leads), "touches": len(state.touches)},
     }
 

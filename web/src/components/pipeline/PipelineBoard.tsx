@@ -20,17 +20,20 @@ export function PipelineBoard() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>(EMPTY);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([getLeads(), getPeople(), getCompanies(), getAnalytics(), getAudit()]).then(([l, p, c, a, au]) => {
-      if (!alive) return;
-      setLeads(l);
-      setPeople(p);
-      setCompanies(c);
-      setAnalytics({ ...EMPTY, ...(a as AnalyticsData) });
-      setAudit(au);
-    });
+    Promise.all([getLeads(), getPeople(), getCompanies(), getAnalytics(), getAudit()])
+      .then(([l, p, c, a, au]) => {
+        if (!alive) return;
+        setLeads(l);
+        setPeople(p);
+        setCompanies(c);
+        setAnalytics({ ...EMPTY, ...(a as AnalyticsData) });
+        setAudit(au);
+      })
+      .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
@@ -83,12 +86,12 @@ export function PipelineBoard() {
         <div>
           <h1 className="font-serif text-2xl text-neutral-900">Pipeline</h1>
           <p className="text-[12px] tabular-nums text-neutral-500">
-            {leads.length} leads · drag a card to move it · every move shows who made it (AI or Rep)
+            {loading ? "Loading leads…" : `${leads.length} leads · drag a card to move it · every move shows who made it (AI or Rep)`}
           </p>
         </div>
       </div>
 
-      <Kanban leads={leads} people={personById} companies={companyById} onMove={onMove} />
+      <Kanban leads={leads} people={personById} companies={companyById} onMove={onMove} loading={loading} />
 
       <div className="mt-8">
         <LearningLoop />

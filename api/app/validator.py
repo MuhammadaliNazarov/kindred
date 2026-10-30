@@ -8,12 +8,15 @@ import socket
 import unicodedata
 from urllib.parse import urlparse
 
+import os
+
 import httpx
 
 from . import thinking
 from .models import Source
 
 _cache: dict[str, str | None] = {}
+_xcache: dict[str, str | None] = {}  # Tavily-extract text per URL (JS-rendered job boards, bot-blocked pages)
 _CACHE_MAX = 512
 _MAX_BYTES = 2_000_000
 UA = {"User-Agent": "Mozilla/5.0 (Warmpath quote validator; +https://example.com)"}
@@ -62,12 +65,30 @@ def _fetch(url: str) -> str | None:
     return None
 
 
+_hcache: dict[str, str | None] = {}  # raw HTML per URL (for link extraction, e.g. the company's own site on a job post)
+_HCACHE_MAX = 128
+
+
+def page_html(url: str) -> str | None:
+    """Raw HTML of the page (direct fetch, cached); None when it could not be fetched."""
+    if url in _hcache:
+        return _hcache[url]
+    try:
+        raw = _fetch(url)
+    except Exception:
+        raw = None
+    if len(_hcache) >= _HCACHE_MAX:
+        _hcache.pop(next(iter(_hcache)), None)
+    _hcache[url] = raw
+    return raw
+
+
 def page_text(url: str) -> str | None:
     if url in _cache:
         return _cache[url]
     text = None
     try:
-        raw = _fetch(url)
+        raw = page_html(url)
         if raw is not None:
             body = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", raw)
             text = norm(re.sub(r"(?s)<[^>]+>", " ", body))
@@ -96,13 +117,62 @@ def quote_found(quote: str, text: str) -> bool:
     return False
 
 
+def _cache_put(cache: dict, url: str, text: str | None) -> None:
+    if len(cache) >= _CACHE_MAX:
+        cache.pop(next(iter(cache)), None)
+    cache[url] = text
+
+
+def extract_text(url: str) -> str | None:
+    """Second opinion when a direct fetch fails or is JS-rendered: Tavily Extract (API key if set, else keyless mode).
+    Tavily fetches the live page itself, so a quote found here is still a quote found on the real page."""
+    if url in _xcache:
+        return _xcache[url]
+    if not _public_url(url) or os.getenv("TAVILY_KEYLESS", "1") == "0" and not os.getenv("TAVILY_API_KEY"):
+        return None
+    text = None
+    key = os.getenv("TAVILY_API_KEY")
+    modes = ([{"Authorization": f"Bearer {key}"}] if key else []) + [{"X-Tavily-Access-Mode": "keyless"}]
+    for hdr in modes:
+        try:
+            r = httpx.post("https://api.tavily.com/extract", headers=hdr, json={"urls": [url], "extract_depth": "basic"}, timeout=25)
+            r.raise_for_status()
+            res = r.json().get("results") or []
+            if res and res[0].get("raw_content"):
+                text = norm(res[0]["raw_content"])
+                break
+        except Exception:
+            continue
+    _cache_put(_xcache, url, text)
+    return text
+
+
+def page_contains(url: str, needle: str) -> bool:
+    """True when `needle` (e.g. a person's name) appears on the page at url (direct fetch, then Tavily Extract)."""
+    n = norm(needle)
+    if len(n) < 4:
+        return False
+    for get in (page_text, extract_text):
+        t = get(url)
+        if t and n in t:
+            return True
+    return False
+
+
 def validate(src: Source, agent: str = "discovery") -> Source:
     text = page_text(src.url)
     ok = bool(text) and quote_found(src.quote, text)
+    via = "direct fetch"
+    if not ok:
+        xt = extract_text(src.url)
+        if xt and quote_found(src.quote, xt):
+            ok, text, via = True, xt, "Tavily extract"
+        elif text is None:
+            text = xt
     src.verified = ok
     src.fetched_at = thinking.now()
     if ok:
-        thinking.emit(agent, "validate", f"Verified quote at {src.url}")
+        thinking.emit(agent, "validate", f"Verified quote at {src.url} ({via})")
     elif text is None:
         thinking.emit(agent, "validate", f"Dropped: could not fetch {src.url}")
     else:

@@ -42,6 +42,62 @@ if (run('ideate')) {
   out.ideate = synth
 }
 
+if (run('build')) {
+  phase('Build')
+  const own = files => `Only edit these files: ${files}. Other agents edit other backend files in parallel. Don't commit. ` +
+    `Test with \`cd ${ROOT}/api && uv run python -c ...\` or a server on your own port (8010-8019). Report (<120 words): what changed, what you verified live.`
+  const built = await parallel([
+    () => agent(`${useSkill(['ecc:lead-intelligence', 'tavily-best-practices', 'ecc:backend-patterns'])}\n${ctx}\n` +
+      `Make discovery return REAL cited leads (judging: ICP & Discovery 20%). Tavily keyless search works without a key (header X-Tavily-Access-Mode: keyless; ` +
+      `see api/app/discovery.py search()). For the Tenki ICP, POST /discover must find ~8-12 real companies (AI-agent startups hiring infra/platform engineers, ` +
+      `recent funding or launches) from real public pages, each with a source {url, title, quote}, and the validator (api/app/validator.py) must confirm the quote ` +
+      `on the page (use Tavily extract keyless if direct fetch fails). Score fit/intent from the evidence, tier A/B/C, write to the graph, keep seed people only as ` +
+      `fallback. Never invent people: if no named public buyer is found, create the buyer as a role ("Head of Platform @ X") with no name. ` +
+      own('api/app/discovery.py, api/app/validator.py'), { label: 'build:discovery', phase: 'Build' }),
+    () => agent(`${useSkill(['ecc:api-connector-builder', 'ecc:backend-patterns'])}\n${ctx}\n` +
+      `Make enrichment verifiable WITHOUT paid keys (judging: Enrichment 20%): in api/app/enrich.py add a free tier: resolve the company domain, real MX lookup ` +
+      `(dnspython, add with uv), mark mx_ok; when Hunter/Apollo keys are absent, set email to null and email_status "unknown" but show domain + MX verified ` +
+      `and a "pattern guess" field only if clearly labelled as a guess (never present a guessed email as verified). Keep the Flexprice/ledger metering and 402 gate. ` +
+      own('api/app/enrich.py, api/pyproject.toml, api/uv.lock'), { label: 'build:enrich', phase: 'Build' }),
+    () => agent(`${useSkill(['ecc:market-research', 'tavily-best-practices'])}\n${ctx}\n` +
+      `QA found ~9 of 11 ICP fields have no source. In api/app/icp.py, after the ICP is inferred, attach 1-2 real sources to each industry, persona, trigger and ` +
+      `the size band using Tavily keyless search (evidence that this segment buys sandboxes/agent infra), with a quote; lower confidence where no source is found. ` +
+      `Same for the 3 expansion segments' evidence. Keep it under ~20 searches per ICP and cache results to data/cache/. ` + own('api/app/icp.py'),
+      { label: 'build:icp-sources', phase: 'Build' }),
+  ])
+  const verify = await agent(`${useSkill(['ecc:verification-loop', 'ecc:fastapi-patterns'])}\n${ctx}\nThree agents just changed api/app/discovery.py, validator.py, ` +
+    `enrich.py, icp.py. Run the API on port 8020 and verify the whole flow end to end with curl: /reset, POST /intake (Tenki), POST /discover, /companies (sources ` +
+    `verified), enrich until 402, draft, review approve -> sent, /analytics, /bandit. Fix only breakages (any file in api/app). Report PASS/FAIL per step.\n\n` +
+    `Their reports:\n${built.filter(Boolean).join('\n---\n')}`, { label: 'verify', phase: 'Build' })
+  out.build = { built, verify }
+}
+
+if (run('polish')) {
+  phase('Polish')
+  const M = { model: 'fable', phase: 'Polish' }
+  const pol = await parallel([
+    () => agent(`${useSkill(['ecc:make-interfaces-feel-better', 'ecc:frontend-design-direction', 'ecc:react-patterns'])}\n${ctx}\n` +
+      `Make the Next.js app in ${ROOT}/web look and feel award-winning for a 2:30 demo video recorded at 1440px wide (read ${ROOT}/DEMO.md for the click path). ` +
+      `Keep the design language (editorial + dense grid, emerald/amber/rose, serif headings). Fix known QA issues: graph labels overlapping, Kanban badges ` +
+      `clipped ("Var"), header wrapping when the out-of-credits banner shows, duplicate Agent Thinking entries, Discovery grid not visible at narrower widths. ` +
+      `Add tasteful motion (row/card enter, credit meter tick, thinking steps streaming in), clear loading/empty states, and a crisp "Proved / Dropped" ` +
+      `citation chip. Only edit ${ROOT}/web/src (other agents edit api/ and docs). Run \`cd web && npx tsc --noEmit && npm run build\`; check pages with the ` +
+      `dev server on port 3100 and screenshots. Report (<150 words).`, { ...M, label: 'polish:web' }),
+    () => agent(`${useSkill(['ecc:doc-updater', 'ecc:architecture-decision-records', 'ecc:api-design'])}\n${ctx}\n` +
+      `Write the two required docs from the actual code (read api/app/*, api/band_agents/*, api/rl/*, web/src/lib/*): ${ROOT}/README.md (what it is, live demo URL ` +
+      `https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh, a mermaid architecture diagram, setup for web/api/band agents with env vars, ` +
+      `sponsor integrations Band/Flexprice/Snyk/Tenki/Tavily and exactly how each is used, honest "live vs fallback" table, deploy via deploy.sh) and ` +
+      `${ROOT}/ARCHITECTURE.md (the spec's System Design doc: query logic, graph ontology with the real Kùzu schema and the warm-path/hiring Cypher, reasoning loops ` +
+      `incl. validator + Reviewer/Security + HITL + bandit + verifier-as-GRPO-reward, data flow per screen, bonus services). Only edit those two files. ` +
+      `Report (<100 words).`, { ...M, label: 'polish:docs' }),
+    () => agent(`${useSkill(['ecc:investor-materials', 'ecc:product-lens'])}\n${ctx}\nWrite ${ROOT}/PITCH.md for the "Startup viability 15%" criterion: ` +
+      `problem with evidence, who pays, pricing per verified lead (metered by Flexprice), market size with sourced numbers (web search, cite URLs), ` +
+      `competitors (from IDEATION.md), why now, moat (proof graph + warm-path data), 90-day go-to-market, and 5 crisp answers to likely judge questions. ` +
+      `One page, plain words. Only edit PITCH.md. Report (<80 words).`, { ...M, label: 'polish:pitch' }),
+  ])
+  out.polish = pol
+}
+
 if (run('review')) {
   phase('Review')
   const [fe, be, sec] = await parallel([

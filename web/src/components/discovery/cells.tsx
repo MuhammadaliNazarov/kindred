@@ -2,7 +2,7 @@
 
 import * as Tooltip from "@radix-ui/react-tooltip";
 import clsx from "clsx";
-import { Check, Loader2, X, AlertTriangle, Minus, ExternalLink } from "lucide-react";
+import { Check, Loader2, X, AlertTriangle, Minus, ExternalLink, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Company, Enrichment, Signal, Source } from "@/lib/types";
 
@@ -106,7 +106,7 @@ export function SignalCell({ s }: { s?: Signal }) {
       <span className="truncate" title={s.summary}>
         {s.summary}
       </span>
-      <span className="shrink-0 tabular-nums text-neutral-500">{fmtDate(s.date)}</span>
+      <span className="hidden shrink-0 tabular-nums text-neutral-500 @4xl:inline">{fmtDate(s.date)}</span>
     </div>
   );
 }
@@ -138,8 +138,46 @@ export function VerifiedTag({ verified }: { verified: boolean }) {
         verified ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700",
       )}
     >
-      {verified ? "verified" : "dropped — quote not found"}
+      {verified ? "proved" : "dropped — quote not found"}
     </span>
+  );
+}
+
+/** The crisp citation chip: Proved (opens the page) or Dropped (validator rejected the quote). */
+export function CitationChip({
+  verdict,
+  count,
+  href,
+  label,
+  compact,
+}: {
+  verdict: "proved" | "dropped";
+  count?: number;
+  href: string;
+  label?: string;
+  /** icon + count only (dense grid); the word lives in the title and the tooltip */
+  compact?: boolean;
+}) {
+  const proved = verdict === "proved";
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={proved ? "Proved: quote found on the page. Opens the source." : "Dropped: quote not found on the page. Validator rejected it."}
+      className={clsx(
+        "group inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border pl-1 pr-1.5 text-[10.5px] font-semibold uppercase tracking-wide tabular-nums transition-colors",
+        proved
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-100"
+          : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400",
+      )}
+    >
+      {proved ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+      {!compact && <span className={clsx(!proved && "line-through decoration-rose-400")}>{label ?? (proved ? "Proved" : "Dropped")}</span>}
+      {count !== undefined && <span className={clsx("rounded-[2px] px-1 font-mono text-[10px]", proved ? "bg-emerald-600 text-white" : "bg-rose-600 text-white")}>{count}</span>}
+      <ExternalLink className="h-2.5 w-2.5 opacity-0 transition-opacity group-hover:opacity-70" />
+    </a>
   );
 }
 
@@ -147,40 +185,32 @@ export function VerifiedTag({ verified }: { verified: boolean }) {
  * Citation chips. Verified sources open in a new tab. Unverified ones were rejected by the
  * validator (quote not found on the page) and are hidden unless showDropped is on.
  */
-export function SourceChips({ sources, showDropped }: { sources: Source[]; showDropped: boolean }) {
+export function SourceChips({ sources, showDropped, compact }: { sources: Source[]; showDropped: boolean; compact?: boolean }) {
   const verified = sources.filter((s) => s.verified);
   const dropped = sources.filter((s) => !s.verified);
   const shown = showDropped ? sources : verified;
   if (!shown.length) {
-    return <span className="text-[11px] text-rose-600">{dropped.length ? `${dropped.length} dropped` : "no source"}</span>;
+    return (
+      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium uppercase tracking-wide text-rose-600">
+        <ShieldAlert className="h-3 w-3" />
+        {dropped.length ? (compact ? `${dropped.length}` : `${dropped.length} dropped`) : "no source"}
+      </span>
+    );
   }
   return (
     <div className="flex items-center gap-1">
       {verified.length > 0 && (
         <Tip content={<SourceList sources={verified} />}>
-          <a
-            href={verified[0].url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 px-1.5 py-px tabular-nums text-emerald-700 hover:border-emerald-600"
-          >
-            <ExternalLink className="h-3 w-3" />
-            {verified.length}
-          </a>
+          <span>
+            <CitationChip verdict="proved" count={verified.length} href={verified[0].url} compact={compact} />
+          </span>
         </Tip>
       )}
       {showDropped && dropped.length > 0 && (
         <Tip content={<SourceList sources={dropped} />}>
-          <a
-            href={dropped[0].url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-px tabular-nums text-rose-700 line-through"
-          >
-            {dropped.length}
-          </a>
+          <span>
+            <CitationChip verdict="dropped" count={dropped.length} href={dropped[0].url} compact={compact} />
+          </span>
         </Tip>
       )}
     </div>
@@ -237,9 +267,9 @@ function InBadge({ muted }: { muted?: boolean }) {
 
 export function EnrichmentIndicator({ e }: { e: Enrichment }) {
   return (
-    <div className="flex items-center gap-3 tabular-nums">
+    <div className="flex min-w-0 items-center gap-2.5 tabular-nums">
       <EmailStatus status={e.email_status} />
-      {e.email && <span className="max-w-[180px] truncate font-mono text-[11px] text-neutral-600">{e.email}</span>}
+      {e.email && <span className="min-w-0 max-w-[180px] truncate font-mono text-[11px] text-neutral-600">{e.email}</span>}
       <span
         className={clsx(
           "text-[11px]",

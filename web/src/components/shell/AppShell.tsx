@@ -14,17 +14,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       <Nav />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-200 px-5">
-          <div className="text-[12px] text-neutral-500">
+        <header className="flex h-12 shrink-0 items-center gap-3 overflow-hidden border-b border-neutral-200 px-5">
+          <div className="shrink-0 whitespace-nowrap text-[12px] text-neutral-500">
             Selling <span className="font-medium text-neutral-900">Tenki</span>
-            <span className="mx-1.5 text-neutral-300">/</span>tenki.cloud
+            <span className="mx-1.5 text-neutral-300">/</span>
+            <span className="hidden xl:inline">tenki.cloud</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex min-w-0 items-center gap-3">
             <CreditsMeter />
             {!open && (
               <button
                 onClick={() => setOpen(true)}
-                className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-2 py-1 text-[12px] text-neutral-700 hover:bg-neutral-50"
+                className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-neutral-200 px-2 text-[12px] text-neutral-700 hover:bg-neutral-50"
               >
                 <PanelRightOpen className="h-3.5 w-3.5" />
                 Agent Thinking

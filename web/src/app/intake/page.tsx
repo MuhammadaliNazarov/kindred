@@ -191,7 +191,7 @@ export default function IntakePage() {
           <button
             onClick={runDemo}
             disabled={demoRunning}
-            className="flex items-center gap-1.5 rounded-md border border-neutral-200 px-2.5 py-1 text-[12px] text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-neutral-200 px-2.5 py-1 text-[12px] text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
           >
             <Sparkles className="h-3.5 w-3.5" /> Use Tenki demo
           </button>

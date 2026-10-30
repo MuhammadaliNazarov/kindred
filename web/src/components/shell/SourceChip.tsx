@@ -24,10 +24,10 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
             target="_blank"
             rel="noreferrer"
             className={clsx(
-              "inline-flex max-w-[180px] items-center gap-1 rounded border px-1.5 py-px text-[11px] leading-4",
+              "inline-flex max-w-[180px] items-center gap-1 rounded border px-1.5 py-px text-[11px] leading-4 transition-colors",
               source.verified
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-neutral-300",
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500"
+                : "border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-neutral-400",
             )}
           >
             <Link2 className="h-3 w-3 shrink-0" />
@@ -44,7 +44,7 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
                   source.verified ? "border-emerald-300 text-emerald-700" : "border-neutral-300 text-neutral-500",
                 )}
               >
-                {source.verified ? "verified" : "sample"}
+                {source.verified ? "proved" : "sample"}
               </span>
             </div>
             <blockquote className="mb-1.5 border-l-2 border-neutral-300 pl-2 font-serif text-[13px] italic leading-snug text-neutral-800">

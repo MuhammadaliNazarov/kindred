@@ -93,10 +93,10 @@ class Signal(BaseModel):
 class Company(BaseModel):
     id: str
     name: str
-    domain: str
+    domain: Optional[str] = None  # lowercase, from the source page / company site; None = unknown (never a guess)
     industry: str
     naics: str
-    headcount: int
+    headcount: Optional[int] = None  # None = unknown (not stated in the evidence); never 0
     hq: str
     fit: int
     intent: int
@@ -112,8 +112,14 @@ class Enrichment(BaseModel):
     email_status: Literal["valid", "accept_all", "invalid", "unknown", "pending"] = "unknown"
     mx_ok: Optional[bool] = None
     linkedin_url: Optional[str] = None
-    provider: Optional[Literal["hunter", "apollo", "seed"]] = None
+    provider: Optional[Literal["hunter", "apollo", "seed", "dns"]] = None
     confidence: float = 0.0
+    # free (DNS) tier evidence: only what was actually verified, never a fabricated email
+    domain: Optional[str] = None  # resolved company domain (live DNS)
+    domain_resolves: Optional[bool] = None  # A/AAAA record found
+    mx_hosts: list[str] = []  # real MX exchanges, by preference
+    pattern_guess: Optional[str] = None  # first.last@domain: a GUESS, never verified, never put in `email`
+    verification: Optional[str] = None  # human-readable statement of what was actually verified
 
 
 class Person(BaseModel):

@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import clsx from "clsx";
-import { ChevronRight, ChevronDown, Zap } from "lucide-react";
+import { ChevronRight, Loader2, Zap } from "lucide-react";
 import { createColumnHelper, tableFeatures, useTable } from "@tanstack/react-table";
 import type { Company, Person } from "@/lib/types";
 import { EnrichmentIndicator, ScoreCell, SignalCell, SourceChips, Tip, latestSignal } from "./cells";
@@ -48,9 +48,9 @@ export function AccountsGrid(props: AccountsGridProps) {
                   e.stopPropagation();
                   setExpanded((x) => ({ ...x, [c.id]: !x[c.id] }));
                 }}
-                className="text-neutral-400 hover:text-neutral-900"
+                className="no-press -ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900"
               >
-                {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                <ChevronRight className={clsx("h-3.5 w-3.5 transition-transform duration-150", open && "rotate-90")} />
               </button>
               <div className="min-w-0">
                 <div className="truncate font-medium">{c.name}</div>
@@ -76,7 +76,7 @@ export function AccountsGrid(props: AccountsGridProps) {
       col.display({
         id: "headcount",
         header: "Headcount",
-        cell: ({ row }) => <span className="tabular-nums">{row.original.headcount.toLocaleString()}</span>,
+        cell: ({ row }) => <span className="tabular-nums">{row.original.headcount == null ? <span className="text-neutral-400">unknown</span> : row.original.headcount.toLocaleString()}</span>,
       }),
       col.display({ id: "hq", header: "HQ", cell: ({ row }) => <span className="truncate">{row.original.hq}</span> }),
       col.display({ id: "score", header: "Score", cell: ({ row }) => <ScoreCell c={row.original} /> }),
@@ -87,7 +87,7 @@ export function AccountsGrid(props: AccountsGridProps) {
         cell: ({ row }) => {
           const c = row.original;
           const all = [...c.sources, ...c.signals.map((s) => s.source)];
-          return <SourceChips sources={all} showDropped={showDropped} />;
+          return <SourceChips sources={all} showDropped={showDropped} compact />;
         },
       }),
       col.display({
@@ -112,11 +112,23 @@ export function AccountsGrid(props: AccountsGridProps) {
 
   const table = useTable({ features, columns, data: companies });
 
-  const widths = ["w-[200px]", "w-[150px]", "w-[80px]", "w-[110px]", "w-[150px]", "", "w-[90px]", "w-[130px]"];
+  // Width + visibility per column. The grid is a container (@container on the wrapper), so columns
+  // drop out as the pane narrows (Thinking panel open, graph pane open) instead of the table clipping.
+  const colCls = [
+    "w-[190px]", // company
+    "hidden w-[140px] @3xl:table-cell", // industry
+    "hidden w-[80px] @5xl:table-cell", // headcount
+    "hidden w-[100px] @4xl:table-cell", // hq
+    "w-[140px]", // score
+    "", // signal (flex)
+    "w-[92px]", // sources
+    "hidden w-[120px] @6xl:table-cell", // competitors
+  ];
 
   return (
+    <div className="@container">
     <table className="w-full table-fixed border-collapse text-[12px]">
-      <thead className="sticky top-0 z-10 bg-white">
+      <thead className="sticky top-0 z-10 bg-white shadow-[0_1px_0_#e5e5e5]">
         {table.getHeaderGroups().map((hg) => (
           <tr key={hg.id} className="border-b border-neutral-200">
             {hg.headers.map((h, i) => (
@@ -124,7 +136,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                 key={h.id}
                 className={clsx(
                   "px-2 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-neutral-500",
-                  widths[i],
+                  colCls[i],
                 )}
               >
                 <table.FlexRender header={h} />
@@ -134,21 +146,23 @@ export function AccountsGrid(props: AccountsGridProps) {
         ))}
       </thead>
       <tbody>
-        {table.getRowModel().rows.map((row) => {
+        {table.getRowModel().rows.map((row, i) => {
           const c = row.original;
           const open = !!expanded[c.id];
           const people = peopleByCompany[c.id] ?? [];
+          const selected = selectedCompanyId === c.id && !selectedPersonId;
           return (
             <Fragment key={row.id}>
               <tr
                 onClick={() => onSelectCompany(c)}
+                style={{ "--i": Math.min(i, 14) } as React.CSSProperties}
                 className={clsx(
-                  "cursor-pointer border-b border-neutral-200 align-middle hover:bg-neutral-50",
-                  selectedCompanyId === c.id && !selectedPersonId && "bg-emerald-50/60 hover:bg-emerald-50",
+                  "wp-rise cursor-pointer border-b border-neutral-200 align-middle transition-colors duration-100 hover:bg-neutral-50",
+                  selected && "bg-emerald-50/70 shadow-[inset_2px_0_0_#059669] hover:bg-emerald-50",
                 )}
               >
-                {row.getAllCells().map((cell) => (
-                  <td key={cell.id} className="overflow-hidden px-2 py-1.5">
+                {row.getAllCells().map((cell, ci) => (
+                  <td key={cell.id} className={clsx("overflow-hidden px-2 py-1.5", colCls[ci])}>
                     <table.FlexRender cell={cell} />
                   </td>
                 ))}
@@ -166,20 +180,24 @@ export function AccountsGrid(props: AccountsGridProps) {
                     key={p.id}
                     onClick={() => onSelectPerson(p)}
                     className={clsx(
-                      "cursor-pointer border-b border-neutral-100 bg-neutral-50/50 hover:bg-neutral-100/70",
-                      selectedPersonId === p.id && "bg-emerald-50 hover:bg-emerald-50",
+                      "wp-fade-in cursor-pointer border-b border-neutral-100 bg-neutral-50/50 transition-colors duration-100 hover:bg-neutral-100/70",
+                      selectedPersonId === p.id && "bg-emerald-50 shadow-[inset_2px_0_0_#059669] hover:bg-emerald-50",
                     )}
                   >
-                    <td colSpan={2} className="overflow-hidden py-1.5 pl-9 pr-2">
-                      <div className="truncate font-medium">{p.name}</div>
-                      <div className="truncate text-[11px] text-neutral-500">{p.title}</div>
-                    </td>
-                    <td className="px-2 py-1.5 text-[11px] text-neutral-600">{p.seniority}</td>
-                    <td colSpan={3} className="overflow-hidden px-2 py-1.5">
-                      <EnrichmentIndicator e={p.enrichment} />
-                    </td>
-                    <td colSpan={2} className="px-2 py-1.5 text-right">
-                      <EnrichButton person={p} pending={enriching.has(p.id)} blocked={creditsBlocked} onEnrich={onEnrich} />
+                    <td colSpan={COLS} className="overflow-hidden py-1.5 pl-9 pr-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-[164px] min-w-0 shrink-0">
+                          <div className="truncate font-medium">{p.name}</div>
+                          <div className="truncate text-[11px] text-neutral-500">{p.title}</div>
+                        </div>
+                        <span className="hidden w-16 shrink-0 text-[11px] text-neutral-600 @3xl:inline">{p.seniority}</span>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <EnrichmentIndicator e={p.enrichment} />
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <EnrichButton person={p} pending={enriching.has(p.id)} blocked={creditsBlocked} onEnrich={onEnrich} />
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -188,6 +206,7 @@ export function AccountsGrid(props: AccountsGridProps) {
         })}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -202,13 +221,15 @@ function EnrichButton({ person, pending, blocked, onEnrich }: { person: Person; 
         onEnrich(person);
       }}
       className={clsx(
-        "inline-flex h-6 items-center gap-1 rounded-sm border px-2 text-[11px] font-medium",
-        blocked || pending
-          ? "cursor-not-allowed border-neutral-200 text-neutral-400"
-          : "border-neutral-300 text-neutral-800 hover:border-neutral-900",
+        "inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-sm border px-2 text-[11px] font-medium",
+        blocked
+          ? "cursor-not-allowed border-rose-200 bg-rose-50 text-rose-400 line-through decoration-rose-300"
+          : pending
+            ? "cursor-wait border-neutral-200 text-neutral-400"
+            : "border-neutral-300 text-neutral-800 hover:border-neutral-900 hover:bg-neutral-50",
       )}
     >
-      <Zap className="h-3 w-3" />
+      {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className={clsx("h-3 w-3", !blocked && "text-amber-500")} />}
       {pending ? "Verifying…" : "Verify & enrich"}
     </button>
   );

@@ -41,7 +41,35 @@ export function GraphPane({
   person: Person | null;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 420, h: 300 });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fgRef = useRef<any>(null);
+  const [size, setSize] = useState({ w: 420, h: 320 });
+
+  // Spread nodes out so labels don't collide: stronger repulsion, longer links. The graph mounts
+  // lazily (dynamic import), so retry until the ref is live.
+  useEffect(() => {
+    if (!graph) return;
+    let tries = 0;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const apply = () => {
+      const fg = fgRef.current;
+      if (!fg) {
+        if (tries++ < 20) t = setTimeout(apply, 100);
+        return;
+      }
+      try {
+        fg.d3Force("charge")?.strength(-200);
+        fg.d3Force("link")?.distance(() => 46);
+        fg.d3ReheatSimulation?.();
+      } catch {
+        /* force engine not ready */
+      }
+    };
+    apply();
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [graph]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -97,8 +125,20 @@ export function GraphPane({
 
   if (!company) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center text-[12px] text-neutral-500">
-        Select an account or buyer to draw its graph and warm path.
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-[12px] text-neutral-500">
+        <svg width="120" height="64" viewBox="0 0 120 64" aria-hidden className="text-neutral-300">
+          <line x1="14" y1="48" x2="52" y2="20" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="52" y1="20" x2="88" y2="40" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="88" y1="40" x2="108" y2="14" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="14" cy="48" r="5" fill="#059669" />
+          <circle cx="52" cy="20" r="4" fill="#2563eb" />
+          <circle cx="88" cy="40" r="4" fill="#2563eb" />
+          <circle cx="108" cy="14" r="5" fill="#171717" />
+        </svg>
+        <div>
+          <div className="font-serif text-[14px] text-neutral-800">Pick an account to draw its graph</div>
+          <div className="mt-0.5">You → ex-colleague → buyer. The warm path and its Cypher appear here.</div>
+        </div>
       </div>
     );
   }
@@ -112,59 +152,93 @@ export function GraphPane({
         </div>
       </div>
 
-      <div ref={wrapRef} className="relative h-[300px] shrink-0 border-b border-neutral-200 bg-neutral-50/40">
+      <div ref={wrapRef} className="relative h-[320px] shrink-0 border-b border-neutral-200 bg-[radial-gradient(circle_at_1px_1px,#e5e5e5_1px,transparent_0)] bg-[length:14px_14px]">
         {loading ? (
-          <div className="flex h-full items-center justify-center gap-2 text-[12px] text-neutral-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Traversing warm paths…
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-[12px] text-neutral-500">
+            <div className="relative flex h-10 w-10 items-center justify-center">
+              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-200/70" />
+              <Loader2 className="relative h-4 w-4 animate-spin text-emerald-700" />
+            </div>
+            Traversing warm paths…
           </div>
         ) : data.nodes.length === 0 ? (
           <div className="flex h-full items-center justify-center text-[12px] text-neutral-500">No graph for this lead yet.</div>
         ) : (
-          <ForceGraph2D
-            width={size.w}
-            height={size.h}
-            graphData={data}
-            backgroundColor="rgba(0,0,0,0)"
-            cooldownTicks={80}
-            nodeRelSize={4}
-            linkLabel={(l: GLink) => l.rel}
-            nodeLabel={(n: GNode) => `${n.type}: ${n.label}`}
-            linkColor={(l: GLink) => (onPath(l) ? "#059669" : "#d4d4d4")}
-            linkWidth={(l: GLink) => (onPath(l) ? 2.5 : 1)}
-            linkDirectionalArrowLength={3}
-            linkDirectionalArrowRelPos={1}
-            linkDirectionalParticles={(l: GLink) => (onPath(l) ? 2 : 0)}
-            linkDirectionalParticleColor={() => "#059669"}
-            nodeCanvasObject={(n: GNode, ctx: CanvasRenderingContext2D, scale: number) => {
-              const r = n.type === "Me" || n.type === "Company" ? 5 : 4;
-              const hot = pathNodes.has(n.id);
-              ctx.beginPath();
-              ctx.arc(n.x ?? 0, n.y ?? 0, r, 0, 2 * Math.PI);
-              ctx.fillStyle = NODE_COLORS[n.type] ?? "#737373";
-              ctx.fill();
-              if (hot) {
-                ctx.lineWidth = 2 / scale;
-                ctx.strokeStyle = "#059669";
+          <div className="wp-fade-in h-full">
+            <ForceGraph2D
+              ref={fgRef}
+              width={size.w}
+              height={size.h}
+              graphData={data}
+              backgroundColor="rgba(0,0,0,0)"
+              cooldownTicks={120}
+              d3AlphaDecay={0.03}
+              d3VelocityDecay={0.3}
+              nodeRelSize={4}
+              linkLabel={(l: GLink) => l.rel}
+              nodeLabel={(n: GNode) => `${n.type}: ${n.label}`}
+              linkColor={(l: GLink) => (onPath(l) ? "#059669" : "#d4d4d4")}
+              linkWidth={(l: GLink) => (onPath(l) ? 2.5 : 1)}
+              linkDirectionalArrowLength={3}
+              linkDirectionalArrowRelPos={1}
+              linkDirectionalParticles={(l: GLink) => (onPath(l) ? 2 : 0)}
+              linkDirectionalParticleColor={() => "#059669"}
+              onEngineStop={() => {
+                // Fit once the layout settles; a second pass catches the last drift after reheat.
+                fgRef.current?.zoomToFit?.(300, 36);
+                setTimeout(() => fgRef.current?.zoomToFit?.(300, 36), 700);
+              }}
+              nodeCanvasObject={(n: GNode, ctx: CanvasRenderingContext2D, scale: number) => {
+                const r = n.type === "Me" || n.type === "Company" ? 5 : 4;
+                const hot = pathNodes.has(n.id);
+                const x = n.x ?? 0;
+                const y = n.y ?? 0;
                 ctx.beginPath();
-                ctx.arc(n.x ?? 0, n.y ?? 0, r + 2.5, 0, 2 * Math.PI);
-                ctx.stroke();
-              }
-              const fs = 11 / scale;
-              ctx.font = `${hot ? "600 " : ""}${fs}px sans-serif`;
-              ctx.fillStyle = hot ? "#065f46" : "#404040";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "top";
-              ctx.fillText(n.label, n.x ?? 0, (n.y ?? 0) + r + 2);
-            }}
-            nodePointerAreaPaint={(n: GNode, color: string, ctx: CanvasRenderingContext2D) => {
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(n.x ?? 0, n.y ?? 0, 7, 0, 2 * Math.PI);
-              ctx.fill();
-            }}
-          />
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.fillStyle = NODE_COLORS[n.type] ?? "#737373";
+                ctx.fill();
+                if (hot) {
+                  ctx.lineWidth = 2 / scale;
+                  ctx.strokeStyle = "#059669";
+                  ctx.beginPath();
+                  ctx.arc(x, y, r + 2.5, 0, 2 * Math.PI);
+                  ctx.stroke();
+                }
+                // Labels: only the path and the anchors stay readable at every zoom; the rest fade in as you zoom.
+                const major = hot || n.type === "Me" || n.type === "Company";
+                if (!major && scale < 1.6) return;
+                const fs = (major ? 10.5 : 9.5) / scale;
+                ctx.font = `${hot ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+                ctx.textAlign = "center";
+                const text = n.label.length > 20 ? n.label.slice(0, 19) + "…" : n.label;
+                const tw = ctx.measureText(text).width;
+                // Alternate label side by node type so neighbours don't stack on the same baseline.
+                const above = n.type === "Me" || n.type === "Company" || n.type === "Competitor";
+                ctx.textBaseline = above ? "bottom" : "top";
+                const ty = above ? y - r - 2.5 : y + r + 2.5;
+                // White pill behind the text so overlapping labels stay legible.
+                const pad = 2 / scale;
+                ctx.fillStyle = "rgba(255,255,255,0.88)";
+                ctx.fillRect(x - tw / 2 - pad, above ? ty - fs - pad / 2 : ty - pad / 2, tw + pad * 2, fs + pad);
+                ctx.fillStyle = hot ? "#065f46" : "#404040";
+                ctx.fillText(text, x, ty);
+              }}
+              nodePointerAreaPaint={(n: GNode, color: string, ctx: CanvasRenderingContext2D) => {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(n.x ?? 0, n.y ?? 0, 7, 0, 2 * Math.PI);
+                ctx.fill();
+              }}
+            />
+          </div>
         )}
         <Legend />
+        {warmPath && warmPath.hops.length > 0 && !loading && (
+          <span className="wp-fade-in pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-white/90 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-emerald-700 shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+            Warm path · {warmPath.hops.length} hop{warmPath.hops.length === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4 text-[12px]">

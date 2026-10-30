@@ -72,6 +72,34 @@ FAILING_CLAIM = {"claim": "Loopwright signed a $2M contract with E2B", "company"
                  **_src("loopwright/press/e2b-contract", "Loopwright press (demo)", "loopwright signed a two million dollar multi year contract with e2b").model_dump()}
 
 CONNECTORS: dict[str, dict] = {}  # name -> {"id", "employer_idx", "target"}
+SEED_IDS: set[str] = {c[0] for c in COMPANIES}
+
+
+def is_seed(company_id: str) -> bool:
+    return company_id in SEED_IDS
+
+
+def purge() -> int:
+    """Drop the fictional demo accounts (buyers, leads, drafts, graph nodes) once discovery has verified real ones.
+    Idempotent; the seeds only stay when discovery found nothing."""
+    from . import outreach
+
+    with state.lock:
+        cids = [cid for cid in SEED_IDS if cid in state.companies]
+        if not cids:
+            return 0
+        pids = {p.id for p in state.people.values() if p.company_id in SEED_IDS}
+        lids = {l.id for l in state.leads.values() if l.company_id in SEED_IDS}
+        tids = {t.id for t in state.touches.values() if t.lead_id in lids}
+        for d, keys in ((state.companies, cids), (state.people, pids), (state.leads, lids), (state.touches, tids), (outreach.state_warm, lids)):
+            for k in keys:
+                d.pop(k, None)
+        state.dropped_claims[:] = [d for d in state.dropped_claims if "example.com" not in (d.get("url") or "")]
+        for cid in cids:
+            graph.delete_company(cid)
+    thinking.emit("discovery", "reason", f"Real verified accounts found — removed {len(cids)} seeded demo accounts ({len(lids)} demo leads) from the pipeline and graph")
+    state.log("ai", "seed_purged", f"{len(cids)} demo accounts removed; {len(state.companies)} real accounts remain", agent="discovery")
+    return len(cids)
 
 
 def set_me_history(employers: list[str]) -> list[str]:

@@ -183,15 +183,27 @@ export default function DiscoveryPage() {
           total={companies?.length ?? 0}
         />
 
-        <div className="flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1 overflow-auto">
+        <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+          <div className="min-h-[280px] min-w-0 flex-1 overflow-auto">
             {error ? (
               <div className="p-6 text-[12px] text-rose-600">Couldn&apos;t load accounts: {error}</div>
             ) : companies === null ? (
               <LoadingRows />
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-[12px] text-neutral-500">
-                {companies.length === 0 ? "No accounts discovered yet. Run ICP first." : "No accounts match these filters."}
+              <div className="flex flex-col items-start gap-2 p-6 text-[12px] text-neutral-500">
+                <div className="font-serif text-[15px] text-neutral-800">
+                  {companies.length === 0 ? "No accounts yet" : "Nothing matches these filters"}
+                </div>
+                <div>{companies.length === 0 ? "Generate the ICP first, then run discovery to pull accounts with cited signals." : "Widen the tier or signal filter to see more accounts."}</div>
+                {companies.length === 0 ? (
+                  <button type="button" onClick={() => void onDiscover()} className="mt-1 h-7 rounded-sm border border-neutral-900 bg-neutral-900 px-2.5 text-[12px] font-medium text-white hover:bg-neutral-800">
+                    Run discovery
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="mt-1 h-7 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-neutral-900">
+                    Clear filters
+                  </button>
+                )}
               </div>
             ) : (
               <AccountsGrid
@@ -209,7 +221,7 @@ export default function DiscoveryPage() {
             )}
           </div>
 
-          <aside className="w-[420px] shrink-0 overflow-hidden border-l border-neutral-200">
+          <aside className="h-[46%] w-full shrink-0 overflow-hidden border-t border-neutral-200 xl:h-auto xl:w-[clamp(300px,27vw,400px)] xl:border-l xl:border-t-0">
             <GraphPane loading={graphLoading} graph={graph} warmPath={warmPath} company={selCompany} person={selPerson} />
           </aside>
         </div>
@@ -220,13 +232,23 @@ export default function DiscoveryPage() {
 
 function LoadingRows() {
   return (
-    <div className="space-y-px p-2">
+    <div className="p-2" aria-busy>
       <div className="mb-2 flex items-center gap-2 px-2 text-[12px] text-neutral-500">
         <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading accounts…
       </div>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="h-9 animate-pulse rounded-sm bg-neutral-50" />
-      ))}
+      <div className="space-y-1">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-[200px_150px_80px_110px_150px_1fr_90px] items-center gap-3 px-2 py-1.5" style={{ opacity: 1 - i * 0.07 }}>
+            <div className="wp-skeleton h-3.5 w-3/4" />
+            <div className="wp-skeleton h-3 w-2/3" />
+            <div className="wp-skeleton h-3 w-1/2" />
+            <div className="wp-skeleton h-3 w-2/3" />
+            <div className="wp-skeleton h-3 w-4/5" />
+            <div className="wp-skeleton h-3 w-2/3" />
+            <div className="wp-skeleton h-4 w-14" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

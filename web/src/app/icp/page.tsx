@@ -15,7 +15,7 @@ function ConfidenceBar({ value }: { value: number }) {
   return (
     <span className="flex items-center gap-2" title={`Confidence ${v.toFixed(2)}`}>
       <span className="h-1 w-20 overflow-hidden rounded-full bg-neutral-200">
-        <span className={clsx("block h-full", tone)} style={{ width: `${v * 100}%` }} />
+        <span className={clsx("block h-full transition-[width] duration-700 ease-out", tone)} style={{ width: `${v * 100}%` }} />
       </span>
       <span className="w-8 text-right font-mono text-[11px] tabular-nums text-neutral-600">{v.toFixed(2)}</span>
     </span>
@@ -37,9 +37,9 @@ function Row({ title, sub, confidence, sources }: { title: React.ReactNode; sub?
   );
 }
 
-function Card({ title, count, children, className }: { title: string; count?: number; children: React.ReactNode; className?: string }) {
+function Card({ title, count, children, className, index = 0 }: { title: string; count?: number; children: React.ReactNode; className?: string; index?: number }) {
   return (
-    <section className={clsx("rounded-lg border border-neutral-200 bg-white", className)}>
+    <section style={{ "--i": index * 2 } as React.CSSProperties} className={clsx("wp-rise rounded-lg border border-neutral-200 bg-white", className)}>
       <header className="flex items-baseline justify-between border-b border-neutral-200 px-4 py-2.5">
         <h3 className="font-serif text-[16px] tracking-tight">{title}</h3>
         {count !== undefined && <span className="text-[11px] tabular-nums text-neutral-400">{count}</span>}
@@ -87,7 +87,25 @@ export default function ICPPage() {
         .
       </div>
     );
-  if (!icp) return <div className="p-8 text-[13px] text-neutral-500">Loading ICP…</div>;
+  if (!icp)
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-6" aria-busy>
+        <div className="wp-skeleton mb-2 h-8 w-72" />
+        <div className="wp-skeleton mb-6 h-3 w-96" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-neutral-200 p-4" style={{ opacity: 1 - i * 0.1 }}>
+              <div className="wp-skeleton mb-4 h-4 w-1/3" />
+              <div className="space-y-3">
+                <div className="wp-skeleton h-3 w-5/6" />
+                <div className="wp-skeleton h-3 w-2/3" />
+                <div className="wp-skeleton h-3 w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
 
   const allConf = [
     ...icp.industries.map((x) => x.confidence),
@@ -122,7 +140,7 @@ export default function ICPPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Card title="Industries" count={icp.industries.length}>
+        <Card title="Industries" count={icp.industries.length} index={0}>
           <ul>
             {icp.industries.map((x) => (
               <Row
@@ -136,7 +154,7 @@ export default function ICPPage() {
           </ul>
         </Card>
 
-        <Card title="Company size">
+        <Card title="Company size" index={1}>
           <ul>
             <Row
               title={
@@ -154,7 +172,7 @@ export default function ICPPage() {
           </div>
         </Card>
 
-        <Card title="Personas" count={icp.personas.length}>
+        <Card title="Personas" count={icp.personas.length} index={2}>
           <ul>
             {icp.personas.map((x) => (
               <Row
@@ -168,7 +186,7 @@ export default function ICPPage() {
           </ul>
         </Card>
 
-        <Card title="Triggers" count={icp.triggers.length} className="md:col-span-2">
+        <Card title="Triggers" count={icp.triggers.length} className="md:col-span-2" index={3}>
           <ul>
             {icp.triggers.map((x) => (
               <Row
@@ -188,7 +206,7 @@ export default function ICPPage() {
           </ul>
         </Card>
 
-        <Card title="Negative signals" count={icp.negative_signals.length}>
+        <Card title="Negative signals" count={icp.negative_signals.length} index={4}>
           <ul className="py-1.5">
             {icp.negative_signals.map((n) => (
               <li key={n} className="flex items-start gap-2 py-1.5 text-[13px] text-neutral-800">
@@ -212,12 +230,15 @@ export default function ICPPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {segs.map((s) => (
+        {segs.map((s, i) => (
           <article
             key={s.id}
+            style={{ "--i": 10 + i * 2 } as React.CSSProperties}
             className={clsx(
-              "flex flex-col rounded-lg border bg-white p-4",
-              s.status === "accepted" || s.status === "adjusted" ? "border-emerald-300" : "border-neutral-200",
+              "wp-rise flex flex-col rounded-lg border bg-white p-4 transition-[opacity,border-color,box-shadow] duration-300",
+              s.status === "accepted" || s.status === "adjusted"
+                ? "border-emerald-300 shadow-[0_0_0_3px_rgba(16,185,129,0.10)]"
+                : "border-neutral-200",
               s.status === "dismissed" && "opacity-50",
             )}
           >
@@ -284,7 +305,11 @@ function StatusTag({ status }: { status: ExpansionSegment["status"] }) {
     adjusted: "border-amber-300 bg-amber-50 text-amber-700",
     dismissed: "border-neutral-200 text-neutral-400",
   };
-  return <span className={clsx("shrink-0 rounded border px-1.5 text-[10px] uppercase tracking-wide", tone[status])}>{status}</span>;
+  return (
+    <span key={status} className={clsx("wp-tick shrink-0 rounded border px-1.5 text-[10px] uppercase tracking-wide", tone[status])}>
+      {status}
+    </span>
+  );
 }
 
 function AdjustDialog({
