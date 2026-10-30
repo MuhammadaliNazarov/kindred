@@ -288,7 +288,7 @@ PII in copy; sends forced to a single demo inbox on an allow-listed domain with 
 mutating routes; Band agents denied every native Claude Code tool (`permission_mode=dontAsk`, no `~/.claude` settings) and
 every non-allow-listed route; secrets only in sandbox `.env` / GitHub secrets; Snyk on every push.
 
-## 8. Known limits (honest)
+## 8. Known limits
 
 - Seeded companies are fictional with `example.com` sources (`verified:false`, labelled "sample"); real accounts only appear
   after live discovery verifies them.
@@ -301,7 +301,7 @@ every non-allow-listed route; secrets only in sandbox `.env` / GitHub secrets; S
 
 ## Post-training and RL: every human decision trains the model
 
-Kindred is a GTM agent that gets better from its own workflow: **the gate that keeps it honest is also the reward that trains it.**
+Kindred is a GTM agent that gets better from its own workflow: **the gate that checks every message is also the reward that trains the model.**
 
 | Piece | What it is | Where |
 |---|---|---|
@@ -327,4 +327,4 @@ Kindred is a GTM agent that gets better from its own workflow: **the gate that k
 **What we learned:**
 - **Run 2 is reward hacking.** Pushed harder, the model raised its total score through length while getting sloppier on citations and claims. The per-check evals caught it, which is why we ship run 1 and keep the verifier as a hard gate.
 - **DPO only learns what reviewers show it.** With 4 human pairs it improved length and style but not the no-guarantees rule. More reviews, especially rejects of overclaiming drafts, fix that.
-- **Honest scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.
+- **Scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.

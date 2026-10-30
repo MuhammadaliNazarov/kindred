@@ -1,9 +1,9 @@
 # Kindred — the AI GTM engine that only says what it can prove
 
-[![snyk](https://github.com/AliNazaarov/kindred/actions/workflows/snyk.yml/badge.svg)](https://github.com/AliNazaarov/kindred/actions/workflows/snyk.yml)
+[![snyk](https://github.com/MuhammadaliNazarov/kindred/actions/workflows/snyk.yml/badge.svg)](https://github.com/MuhammadaliNazarov/kindred/actions/workflows/snyk.yml)
 
-**Live demo:** https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh
-**API:** https://warmpath-api--u6faat.us.sb.tenki.sh/health · **Code:** https://github.com/AliNazaarov/kindred
+**Live demo:** https://kindred--u6faat.us.sb.tenki.sh
+**API:** https://kindred-api--u6faat.us.sb.tenki.sh/health · **Code:** https://github.com/MuhammadaliNazarov/kindred
 
 Hackathon build for the "AI GTM Engine" spec (29 Oct 2026). Demo product: [Tenki](https://tenki.cloud) (agent sandboxes).
 
@@ -51,7 +51,7 @@ flowchart LR
   end
 
   subgraph Band["api/band_agents/ · Band room"]
-    P[Planner] -->|@Builder| B[Builder] -->|@Reviewer| R[Reviewer] -->|@Security| S[Security] -->|@human approve?| H((Human))
+    P[Planner] -->|"@Builder"| B[Builder] -->|"@Reviewer"| R[Reviewer] -->|"@Security"| S[Security] -->|"@human approve?"| H((Human))
   end
 
   API_TS -->|HTTP + SSE| MAIN
@@ -162,7 +162,7 @@ GRPO training (`--model Qwen/Qwen2.5-0.5B-Instruct --steps 200`) needs one GPU a
 
 Other services: **Hunter.io** (email-finder / domain-search + email-verifier with MX) → **Apollo** (`people/match`) → free **DNS/MX** tier via dnspython (`enrich.py`); **SendGrid** `mail/send` with click/open tracking disabled (`outreach.py`); **Serper** as a second search provider.
 
-## Live vs fallback (honest table)
+## Live vs fallback
 
 `GET /health` → `modes` tells you which column you are in.
 
@@ -189,10 +189,10 @@ Other services: **Hunter.io** (email-finder / domain-search + email-verifier wit
 
 `deploy.sh` tars each service (excluding `node_modules`, `.next`, `.venv`, `data`, `.env`), base64-writes it into the Tenki sandbox with `tenki sandbox write`, then `tenki sandbox exec`:
 
-- **web** (session `warmpath`): `npm ci`, `NEXT_PUBLIC_API_URL=https://warmpath-api--u6faat.us.sb.tenki.sh npm run build`, restart `next start -p 3000 -H 0.0.0.0` detached, curl `/intake`.
+- **web** (session `warmpath`): `npm ci`, `NEXT_PUBLIC_API_URL=https://kindred-api--u6faat.us.sb.tenki.sh npm run build`, restart `next start -p 3000 -H 0.0.0.0` detached, curl `/intake`.
 - **api** (session `warmpath-api`): `uv sync`, source `~/gtm/api/.env` in the sandbox (secrets live there, never in git), restart `uvicorn app.main:app --port 8000` with `CORS_ORIGIN_REGEX` for `*.us.sb.tenki.sh`, curl `/health`.
 
-Needs the `tenki` CLI at `~/.local/bin/tenki` and the two sandbox sessions already created. Before recording: `curl -X POST https://warmpath-api--u6faat.us.sb.tenki.sh/reset`.
+Needs the `tenki` CLI at `~/.local/bin/tenki` and the two sandbox sessions already created. Before recording: `curl -X POST https://kindred-api--u6faat.us.sb.tenki.sh/reset`.
 
 ## Rules we never break
 
@@ -202,7 +202,7 @@ Needs the `tenki` CLI at `~/.local/bin/tenki` and the two sandbox sessions alrea
 
 ## Post-training and RL: every human decision trains the model
 
-Kindred is a GTM agent that gets better from its own workflow: **the gate that keeps it honest is also the reward that trains it.**
+Kindred is a GTM agent that gets better from its own workflow: **the gate that checks every message is also the reward that trains the model.**
 
 | Piece | What it is | Where |
 |---|---|---|
@@ -228,4 +228,4 @@ Kindred is a GTM agent that gets better from its own workflow: **the gate that k
 **What we learned:**
 - **Run 2 is reward hacking.** Pushed harder, the model raised its total score through length while getting sloppier on citations and claims. The per-check evals caught it, which is why we ship run 1 and keep the verifier as a hard gate.
 - **DPO only learns what reviewers show it.** With 4 human pairs it improved length and style but not the no-guarantees rule. More reviews, especially rejects of overclaiming drafts, fix that.
-- **Honest scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.
+- **Scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.

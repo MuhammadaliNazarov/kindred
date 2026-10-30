@@ -7,7 +7,7 @@ source of truth for the README, the demo and Q&A. Prices in the product (billing
 
 ## 0. Why Kindred wins a post-training room — and RL: every human decision trains the model
 
-Kindred is a GTM agent that gets better from its own workflow: **the gate that keeps it honest is also the reward that trains it.**
+Kindred is a GTM agent that gets better from its own workflow: **the gate that checks every message is also the reward that trains the model.**
 
 | Piece | What it is | Where |
 |---|---|---|
@@ -33,7 +33,7 @@ Kindred is a GTM agent that gets better from its own workflow: **the gate that k
 **What we learned:**
 - **Run 2 is reward hacking.** Pushed harder, the model raised its total score through length while getting sloppier on citations and claims. The per-check evals caught it, which is why we ship run 1 and keep the verifier as a hard gate.
 - **DPO only learns what reviewers show it.** With 4 human pairs it improved length and style but not the no-guarantees rule. More reviews, especially rejects of overclaiming drafts, fix that.
-- **Honest scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.
+- **Scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.
 
 
 ## 1. Problem, with evidence

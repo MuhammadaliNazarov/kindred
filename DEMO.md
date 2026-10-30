@@ -1,6 +1,6 @@
 # Kindred: 2:30 demo script
 
-App: https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · Code: https://github.com/AliNazaarov/kindred
+App: https://kindred--u6faat.us.sb.tenki.sh · Code: https://github.com/MuhammadaliNazarov/kindred
 
 ## The product in one breath
 
@@ -15,7 +15,7 @@ to the web page it came from, and nothing is sent until a human approves it.
 
 ## Before you record (5 min)
 
-1. Reset the demo: `curl -X POST https://warmpath-api--u6faat.us.sb.tenki.sh/reset`
+1. Reset the demo: `curl -X POST https://kindred-api--u6faat.us.sb.tenki.sh/reset`
 2. Open the app at full width (1440 px or more) and close other tabs.
 3. If Band is set up, open the `warmpath-demo` room in a second window, side by side.
 4. Do one practice run without recording.
