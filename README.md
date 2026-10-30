@@ -2,7 +2,7 @@
 
 [![snyk](https://github.com/MuhammadaliNazarov/kindred/actions/workflows/snyk.yml/badge.svg)](https://github.com/MuhammadaliNazarov/kindred/actions/workflows/snyk.yml)
 
-**Live demo:** https://kindred--u6faat.us.sb.tenki.sh
+**Live demo:** https://kindred-sable-gamma.vercel.app (Vercel) · https://kindred--u6faat.us.sb.tenki.sh (Tenki)
 **API:** https://kindred-api--u6faat.us.sb.tenki.sh/health · **Code:** https://github.com/MuhammadaliNazarov/kindred
 
 Hackathon build for the "AI GTM Engine" spec (29 Oct 2026). Demo product: [Tenki](https://tenki.cloud) (agent sandboxes).
