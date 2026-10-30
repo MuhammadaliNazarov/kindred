@@ -14,12 +14,12 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false 
 type NodeType = GraphData["nodes"][number]["type"];
 
 export const NODE_COLORS: Record<NodeType, string> = {
-  Me: "#059669", // emerald-600
-  Company: "#171717", // neutral-900
-  Person: "#2563eb", // blue-600
-  Competitor: "#e11d48", // rose-600
-  Signal: "#f59e0b", // amber-500
-  Product: "#7c3aed", // violet-600
+  Me: "#34d399", // success
+  Company: "#e6ebf5", // near-white on navy
+  Person: "#6f8dff", // accent, lifted for contrast
+  Competitor: "#fb7185", // danger
+  Signal: "#fbbf24", // warn
+  Product: "#c4b5fd", // violet-300
 };
 
 type GNode = GraphData["nodes"][number] & { x?: number; y?: number };
@@ -130,10 +130,10 @@ export function GraphPane({
           <line x1="14" y1="48" x2="52" y2="20" stroke="currentColor" strokeWidth="1.5" />
           <line x1="52" y1="20" x2="88" y2="40" stroke="currentColor" strokeWidth="1.5" />
           <line x1="88" y1="40" x2="108" y2="14" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="14" cy="48" r="5" fill="#059669" />
-          <circle cx="52" cy="20" r="4" fill="#2563eb" />
-          <circle cx="88" cy="40" r="4" fill="#2563eb" />
-          <circle cx="108" cy="14" r="5" fill="#171717" />
+          <circle cx="14" cy="48" r="5" fill="#34d399" />
+          <circle cx="52" cy="20" r="4" fill="#6f8dff" />
+          <circle cx="88" cy="40" r="4" fill="#6f8dff" />
+          <circle cx="108" cy="14" r="5" fill="#e6ebf5" />
         </svg>
         <div>
           <div className="font-serif text-[14px] text-neutral-800">Pick an account to draw its graph</div>
@@ -152,12 +152,12 @@ export function GraphPane({
         </div>
       </div>
 
-      <div ref={wrapRef} className="relative h-[320px] shrink-0 border-b border-neutral-200 bg-[radial-gradient(circle_at_1px_1px,#e5e5e5_1px,transparent_0)] bg-[length:14px_14px]">
+      <div ref={wrapRef} className="relative h-[320px] shrink-0 border-b border-neutral-200 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.07)_1px,transparent_0)] bg-[length:14px_14px]">
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[12px] text-neutral-500">
             <div className="relative flex h-10 w-10 items-center justify-center">
               <span className="absolute inset-0 animate-ping rounded-full bg-emerald-200/70" />
-              <Loader2 className="relative h-4 w-4 animate-spin text-emerald-700" />
+              <Loader2 className="relative h-4 w-4 animate-spin text-emerald-300" />
             </div>
             Traversing warm paths…
           </div>
@@ -177,12 +177,12 @@ export function GraphPane({
               nodeRelSize={4}
               linkLabel={(l: GLink) => l.rel}
               nodeLabel={(n: GNode) => `${n.type}: ${n.label}`}
-              linkColor={(l: GLink) => (onPath(l) ? "#059669" : "#d4d4d4")}
+              linkColor={(l: GLink) => (onPath(l) ? "#34d399" : "rgba(255,255,255,0.16)")}
               linkWidth={(l: GLink) => (onPath(l) ? 2.5 : 1)}
               linkDirectionalArrowLength={3}
               linkDirectionalArrowRelPos={1}
               linkDirectionalParticles={(l: GLink) => (onPath(l) ? 2 : 0)}
-              linkDirectionalParticleColor={() => "#059669"}
+              linkDirectionalParticleColor={() => "#9fd3ff"}
               onEngineStop={() => {
                 // Fit once the layout settles; a second pass catches the last drift after reheat.
                 fgRef.current?.zoomToFit?.(300, 36);
@@ -195,11 +195,11 @@ export function GraphPane({
                 const y = n.y ?? 0;
                 ctx.beginPath();
                 ctx.arc(x, y, r, 0, 2 * Math.PI);
-                ctx.fillStyle = NODE_COLORS[n.type] ?? "#737373";
+                ctx.fillStyle = NODE_COLORS[n.type] ?? "#8d99b8";
                 ctx.fill();
                 if (hot) {
                   ctx.lineWidth = 2 / scale;
-                  ctx.strokeStyle = "#059669";
+                  ctx.strokeStyle = "#34d399";
                   ctx.beginPath();
                   ctx.arc(x, y, r + 2.5, 0, 2 * Math.PI);
                   ctx.stroke();
@@ -208,7 +208,7 @@ export function GraphPane({
                 const major = hot || n.type === "Me" || n.type === "Company";
                 if (!major && scale < 1.6) return;
                 const fs = (major ? 10.5 : 9.5) / scale;
-                ctx.font = `${hot ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+                ctx.font = `${hot ? "500 " : ""}${fs}px Inter, ui-sans-serif, system-ui, sans-serif`;
                 ctx.textAlign = "center";
                 const text = n.label.length > 20 ? n.label.slice(0, 19) + "…" : n.label;
                 const tw = ctx.measureText(text).width;
@@ -218,9 +218,9 @@ export function GraphPane({
                 const ty = above ? y - r - 2.5 : y + r + 2.5;
                 // White pill behind the text so overlapping labels stay legible.
                 const pad = 2 / scale;
-                ctx.fillStyle = "rgba(255,255,255,0.88)";
+                ctx.fillStyle = "rgba(7,13,34,0.85)";
                 ctx.fillRect(x - tw / 2 - pad, above ? ty - fs - pad / 2 : ty - pad / 2, tw + pad * 2, fs + pad);
-                ctx.fillStyle = hot ? "#065f46" : "#404040";
+                ctx.fillStyle = hot ? "#6ee7b7" : "#dfe4ef";
                 ctx.fillText(text, x, ty);
               }}
               nodePointerAreaPaint={(n: GNode, color: string, ctx: CanvasRenderingContext2D) => {
@@ -234,7 +234,7 @@ export function GraphPane({
         )}
         <Legend />
         {warmPath && warmPath.hops.length > 0 && !loading && (
-          <span className="wp-fade-in pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-white/90 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-emerald-700 shadow-sm">
+          <span className="wp-fade-in pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-panel/90 px-1.5 py-px text-[11px] font-medium tracking-wide text-emerald-300 shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
             Warm path · {warmPath.hops.length} hop{warmPath.hops.length === 1 ? "" : "s"}
           </span>
@@ -243,7 +243,7 @@ export function GraphPane({
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4 text-[12px]">
         <section>
-          <h3 className="mb-1.5 font-serif text-[14px] text-neutral-900">Why this lead</h3>
+          <h3 className="mb-1.5 font-serif text-[18px] text-neutral-900">Why this lead</h3>
           {loading ? (
             <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-100" />
           ) : warmPath && warmPath.hops.length ? (
@@ -255,7 +255,7 @@ export function GraphPane({
 
         {warmPath?.cypher && (
           <section>
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-neutral-500">Cypher</div>
+            <div className="mb-1 text-[11px] tracking-wide text-neutral-500">Cypher</div>
             <pre className="overflow-x-auto whitespace-pre-wrap rounded-sm border border-neutral-200 bg-neutral-50 p-2 font-mono text-[11px] leading-snug text-neutral-800">
               {warmPath.cypher}
             </pre>
@@ -263,7 +263,7 @@ export function GraphPane({
         )}
 
         <section>
-          <div className="mb-1 text-[11px] uppercase tracking-wide text-neutral-500">Top signal</div>
+          <div className="mb-1 text-[11px] tracking-wide text-neutral-500">Top signal</div>
           {topSignal ? (
             <div className="space-y-2 rounded-sm border border-neutral-200 p-2">
               <div className="flex items-center gap-1.5">
@@ -304,7 +304,7 @@ function hopsToText(wp: WarmPath, graph: GraphData | null) {
 
 function Legend() {
   return (
-    <div className="pointer-events-none absolute bottom-1.5 left-2 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-neutral-600">
+    <div className="pointer-events-none absolute bottom-1.5 left-2 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-neutral-600">
       {(Object.keys(NODE_COLORS) as NodeType[]).map((t) => (
         <span key={t} className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: NODE_COLORS[t] }} />

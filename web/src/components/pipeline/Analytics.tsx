@@ -25,15 +25,15 @@ const fmtPct = (v: number) => `${v.toFixed(v > 0 && v < 10 ? 1 : 0)}%`;
 function Bar({ value, tone = "neutral" }: { value: number; tone?: "neutral" | "ok" }) {
   return (
     <div className="h-1.5 w-full bg-neutral-100">
-      <div className={clsx("h-full", tone === "ok" ? "bg-emerald-600" : "bg-neutral-800")} style={{ width: `${Math.min(100, value)}%` }} />
+      <div className={clsx("h-full", tone === "ok" ? "bg-emerald-600" : "bg-accent-hover")} style={{ width: `${Math.min(100, value)}%` }} />
     </div>
   );
 }
 
 function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={clsx("border border-neutral-200 bg-white", className)}>
-      <h3 className="border-b border-neutral-200 px-3 py-2 font-serif text-[15px] text-neutral-900">{title}</h3>
+    <section className={clsx("overflow-hidden rounded-[20px] border border-neutral-200 bg-surface", className)}>
+      <h3 className="border-b border-neutral-200 px-3 py-2 font-serif text-[18px] text-neutral-900">{title}</h3>
       <div className="p-3">{children}</div>
     </section>
   );
@@ -53,7 +53,7 @@ export function Funnel({ data }: { data: AnalyticsData["byStage"] }) {
           <div key={s} className="grid grid-cols-[80px_1fr_44px_52px] items-center gap-2 text-[12px] tabular-nums">
             <span className="text-neutral-700">{STAGE_LABEL[s]}</span>
             <div className="h-5 bg-neutral-100">
-              <div className={clsx("h-full", s === "closed_won" ? "bg-emerald-600" : "bg-neutral-800")} style={{ width: `${pct(reached[i], top)}%` }} />
+              <div className={clsx("h-full", s === "closed_won" ? "bg-emerald-600" : "bg-accent-hover")} style={{ width: `${pct(reached[i], top)}%` }} />
             </div>
             <span className="text-right text-neutral-900">{reached[i]}</span>
             <span className="text-right text-neutral-500">{i === 0 ? "" : fmtPct(pct(reached[i], reached[i - 1]))}</span>
@@ -80,14 +80,14 @@ function ConvTable<T extends { matched: number; contacted: number; replied: numb
     <Section title={title}>
       <table className="w-full text-[12px] tabular-nums">
         <thead>
-          <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-            <th className="pb-1 font-semibold">Segment</th>
-            <th className="pb-1 text-right font-semibold">Matched</th>
-            <th className="pb-1 text-right font-semibold">Contacted</th>
-            <th className="pb-1 text-right font-semibold">Replied</th>
-            <th className="pb-1 text-right font-semibold">Meetings</th>
-            <th className="w-[120px] pb-1 pl-3 font-semibold">Reply %</th>
-            <th className="w-[120px] pb-1 pl-3 font-semibold">Meeting %</th>
+          <tr className="text-left text-[11px] tracking-wider text-neutral-500">
+            <th className="pb-1 font-medium">Segment</th>
+            <th className="pb-1 text-right font-medium">Matched</th>
+            <th className="pb-1 text-right font-medium">Contacted</th>
+            <th className="pb-1 text-right font-medium">Replied</th>
+            <th className="pb-1 text-right font-medium">Meetings</th>
+            <th className="w-[120px] pb-1 pl-3 font-medium">Reply %</th>
+            <th className="w-[120px] pb-1 pl-3 font-medium">Meeting %</th>
           </tr>
         </thead>
         <tbody>
@@ -144,17 +144,17 @@ export function VariantTable({ rows }: { rows: AnalyticsData["variants"] }) {
     <Section title="A/B by variant">
       <table className="w-full text-[12px] tabular-nums">
         <thead>
-          <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
-            <th className="pb-1 font-semibold">Variant</th>
-            <th className="pb-1 text-right font-semibold">Sent</th>
-            <th className="w-[130px] pb-1 pl-3 font-semibold">Open %</th>
-            <th className="w-[130px] pb-1 pl-3 font-semibold">Reply %</th>
+          <tr className="text-left text-[11px] tracking-wider text-neutral-500">
+            <th className="pb-1 font-medium">Variant</th>
+            <th className="pb-1 text-right font-medium">Sent</th>
+            <th className="w-[130px] pb-1 pl-3 font-medium">Open %</th>
+            <th className="w-[130px] pb-1 pl-3 font-medium">Reply %</th>
             <th className="pb-1" />
           </tr>
         </thead>
         <tbody>
           {withRates.map((r) => {
-            const win = best && best.variant === r.variant && r.sent > 0 && withRates.length > 1;
+            const win = best && best.variant === r.variant && r.sent >= 5 && withRates.length > 1;
             return (
               <tr key={r.variant} className={clsx("border-t border-neutral-100", win && "bg-emerald-50/60")}>
                 <td className="py-1.5 font-medium text-neutral-900">Variant {r.variant}</td>

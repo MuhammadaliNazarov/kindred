@@ -13,10 +13,10 @@ export function Badge({ tone = "neutral", children, className }: { tone?: "neutr
       className={clsx(
         "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-px text-[11px] font-medium leading-4 tabular-nums",
         tone === "neutral" && "border-neutral-200 bg-neutral-50 text-neutral-700",
-        tone === "ok" && "border-emerald-200 bg-emerald-50 text-emerald-700",
-        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-700",
-        tone === "fail" && "border-rose-200 bg-rose-50 text-rose-700",
-        tone === "dark" && "border-neutral-900 bg-neutral-900 text-white",
+        tone === "ok" && "border-emerald-200 bg-emerald-50 text-emerald-300",
+        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-300",
+        tone === "fail" && "border-rose-200 bg-rose-50 text-rose-300",
+        tone === "dark" && "border-accent bg-accent text-white",
         className,
       )}
     >
@@ -62,9 +62,9 @@ export function Btn({
       disabled={disabled}
       className={clsx(
         "inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-sm border px-2.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
-        variant === "default" && "border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50",
+        variant === "default" && "border-neutral-300 bg-surface text-neutral-800 hover:bg-neutral-50",
         variant === "primary" && "border-emerald-700 bg-emerald-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-emerald-700",
-        variant === "danger" && "border-rose-200 bg-white text-rose-700 hover:bg-rose-50",
+        variant === "danger" && "border-rose-200 bg-surface text-rose-300 hover:bg-rose-50",
         variant === "ghost" && "border-transparent bg-transparent text-neutral-600 hover:bg-neutral-100",
         className,
       )}

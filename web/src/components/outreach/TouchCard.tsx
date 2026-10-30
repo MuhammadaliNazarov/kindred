@@ -48,17 +48,17 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
     <article
       style={{ "--i": index } as React.CSSProperties}
       className={clsx(
-        "wp-rise rounded-sm border bg-white transition-[opacity,border-color,box-shadow] duration-300",
-        decided ? "border-neutral-200 opacity-75" : "border-neutral-300 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_16px_-10px_rgba(0,0,0,0.12)]",
+        "wp-rise rounded-sm border bg-surface transition-[opacity,border-color,box-shadow] duration-300",
+        decided ? "border-neutral-200 opacity-75" : "border-neutral-300 shadow-[0_1px_2px_rgba(0,0,0,0.2),0_10px_30px_-12px_rgba(0,0,0,0.6)]",
         touch.status === "approved" || touch.status === "sent" ? "border-emerald-300" : "",
         touch.status === "rejected" ? "border-rose-200" : "",
       )}
     >
       {/* Pinned why-now signal */}
       <div className="flex items-start gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2">
-        <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+        <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Why now</div>
+          <div className="text-[11px] font-medium tracking-wider text-neutral-500">Why now</div>
           {signal ? (
             <div className="text-[12px] text-neutral-800">
               {signal.summary} <span className="text-neutral-500 tabular-nums">· {signal.date}</span>
@@ -76,13 +76,13 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
             className={clsx(
               "inline-flex max-w-[260px] shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px text-[11px] transition-colors",
               signal.source.verified
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500"
-                : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400",
+                ? "border-emerald-200 bg-emerald-50 text-emerald-300 hover:border-emerald-500"
+                : "border-rose-200 bg-rose-50 text-rose-300 hover:border-rose-400",
             )}
           >
             {signal.source.verified ? <ShieldCheck className="h-3 w-3 shrink-0" /> : <ShieldAlert className="h-3 w-3 shrink-0" />}
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide">{signal.source.verified ? "Proved" : "Dropped"}</span>
-            <span className="truncate border-l border-black/15 pl-1.5">{signal.source.title || signal.source.url}</span>
+            <span className="shrink-0 text-[11px] font-medium tracking-wide">{signal.source.verified ? "Proved" : "Dropped"}</span>
+            <span className="truncate border-l border-white/15 pl-1.5">{signal.source.title || signal.source.url}</span>
             <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
           </a>
         )}
@@ -108,7 +108,7 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-sm border border-neutral-300 px-2 py-1 text-[13px] focus:border-neutral-900 focus:outline-none"
+                className="w-full rounded-sm border border-neutral-300 px-2 py-1 text-[13px] focus:border-accent focus:outline-none"
                 placeholder="Subject"
               />
             )}
@@ -116,12 +116,12 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={7}
-              className="w-full resize-y rounded-sm border border-neutral-300 px-2 py-1.5 text-[13px] leading-relaxed focus:border-neutral-900 focus:outline-none"
+              className="w-full resize-y rounded-sm border border-neutral-300 px-2 py-1.5 text-[13px] leading-relaxed focus:border-accent focus:outline-none"
             />
           </div>
         ) : (
           <>
-            {touch.subject && <div className="mb-1 text-[13px] font-semibold text-neutral-900">{touch.subject}</div>}
+            {touch.subject && <div className="mb-1 text-[13px] font-medium text-neutral-900">{touch.subject}</div>}
             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-800">{touch.body}</p>
           </>
         )}
@@ -129,22 +129,22 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
 
       {/* Verdicts */}
       <div className="grid grid-cols-2 gap-px border-t border-neutral-200 bg-neutral-200 text-[12px]">
-        <div className="bg-white px-3 py-1.5">
+        <div className="bg-surface px-3 py-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Reviewer</span>
+            <span className="text-[11px] font-medium tracking-wider text-neutral-500">Reviewer</span>
             <Badge tone={verdictTone(touch.review.verdict)}>{touch.review.verdict}</Badge>
             {touch.review.score !== undefined && (
-              <span className="text-[10px] tabular-nums text-neutral-500" title="Verifier score = the GRPO reward">
+              <span className="text-[11px] tabular-nums text-neutral-500" title="Verifier score = the GRPO reward">
                 verifier {touch.review.score}/{touch.review.max_score ?? 4.5}
               </span>
             )}
-            {touch.arm && <span className="text-[10px] text-neutral-400" title="Bandit arm (hook × CTA)">{touch.arm}</span>}
+            {touch.arm && <span className="text-[11px] text-neutral-400" title="Bandit arm (hook × CTA)">{touch.arm}</span>}
           </div>
           <div className="mt-0.5 text-neutral-600">{touch.review.notes}</div>
           {touch.review.checks && touch.review.checks.length > 0 && (
             <ul className="mt-1 space-y-px text-[11px]">
               {touch.review.checks.map((c) => (
-                <li key={c.name} className={clsx("flex gap-1", c.pass ? "text-emerald-700" : "text-rose-700")} title={c.detail}>
+                <li key={c.name} className={clsx("flex gap-1", c.pass ? "text-emerald-300" : "text-rose-300")} title={c.detail}>
                   <span aria-hidden>{c.pass ? "✓" : "✗"}</span>
                   <span>{c.name}</span>
                   {!c.pass && c.detail && <span className="truncate text-neutral-500">· {c.detail}</span>}
@@ -153,14 +153,14 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
             </ul>
           )}
         </div>
-        <div className="bg-white px-3 py-1.5">
+        <div className="bg-surface px-3 py-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Security</span>
+            <span className="text-[11px] font-medium tracking-wider text-neutral-500">Security</span>
             <Badge tone={secFail ? "fail" : "ok"}>
               {secFail ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
               {touch.security.verdict}
             </Badge>
-            <span className="text-[10px] text-neutral-400">links / PII</span>
+            <span className="text-[11px] text-neutral-400">links / PII</span>
           </div>
           <div className="mt-0.5 text-neutral-600">{touch.security.notes}</div>
         </div>
@@ -212,7 +212,7 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
                 <Copy className="h-3.5 w-3.5" /> {copied ? "Copied" : "Copy to clipboard"}
               </Btn>
             )}
-            {secFail && <span className="text-[11px] text-rose-600">Approve blocked by Security</span>}
+            {secFail && <span className="text-[11px] text-rose-300">Approve blocked by Security</span>}
           </>
         )}
       </div>

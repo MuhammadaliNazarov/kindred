@@ -13,16 +13,16 @@ export function AuditLog({ events, leadLabel }: { events: AuditEvent[]; leadLabe
   const counts = { all: events.length, ai: events.filter((e) => e.actor === "ai").length, rep: events.filter((e) => e.actor === "rep").length };
 
   return (
-    <section className="border border-neutral-200 bg-white">
+    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
-        <h3 className="font-serif text-[15px] text-neutral-900">Audit log</h3>
+        <h3 className="font-serif text-[18px] text-neutral-900">Audit log</h3>
         <div className="flex border border-neutral-200 text-[11px]">
           {(["all", "ai", "rep"] as const).map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={clsx("px-2 py-0.5 tabular-nums", filter === f ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-50")}
+              className={clsx("px-2 py-0.5 tabular-nums", filter === f ? "bg-accent text-white" : "text-neutral-600 hover:bg-neutral-50")}
             >
               {f === "all" ? "All" : f === "ai" ? "AI" : "Rep"} {counts[f]}
             </button>
@@ -31,13 +31,13 @@ export function AuditLog({ events, leadLabel }: { events: AuditEvent[]; leadLabe
       </div>
       <div className="max-h-[360px] overflow-auto">
         <table className="w-full text-[12px] tabular-nums">
-          <thead className="sticky top-0 bg-white">
-            <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wider text-neutral-500">
-              <th className="px-3 py-1 font-semibold">Time</th>
-              <th className="px-3 py-1 font-semibold">Actor</th>
-              <th className="px-3 py-1 font-semibold">Action</th>
-              <th className="px-3 py-1 font-semibold">Lead</th>
-              <th className="px-3 py-1 font-semibold">Detail</th>
+          <thead className="sticky top-0 bg-panel">
+            <tr className="border-b border-neutral-200 text-left text-[11px] tracking-wider text-neutral-500">
+              <th className="px-3 py-1 font-medium">Time</th>
+              <th className="px-3 py-1 font-medium">Actor</th>
+              <th className="px-3 py-1 font-medium">Action</th>
+              <th className="px-3 py-1 font-medium">Lead</th>
+              <th className="px-3 py-1 font-medium">Detail</th>
             </tr>
           </thead>
           <tbody>

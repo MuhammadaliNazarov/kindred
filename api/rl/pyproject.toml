@@ -1,0 +1,26 @@
+[project]
+name = "warmpath-rl"
+version = "0.1.0"
+description = "CPU-only GRPO/DPO post-training + eval for Warmpath outreach (reward = app.verifier.score)"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.56",
+    "trl>=0.23",
+    "peft>=0.17",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "httpx>=0.27",
+]
+
+[tool.uv]
+package = false
+
+# Linux: pull the CPU-only torch wheel (no 2GB CUDA download). macOS uses the normal PyPI wheel.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

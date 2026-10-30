@@ -38,7 +38,7 @@ export function Kanban({ leads, people, companies, onMove, loading }: Props) {
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className="overflow-x-auto">
-        <div className="grid min-w-[860px] grid-cols-5 gap-px border border-neutral-200 bg-neutral-200">
+        <div className="grid min-w-[860px] grid-cols-5 gap-px overflow-hidden rounded-[20px] border border-neutral-200 bg-neutral-200">
           {COLUMNS.map((col) => (
             <KanbanColumn
               key={col.id}
@@ -61,7 +61,7 @@ function KanbanColumn({ col, leads, people, companies, onMove, loading }: { col:
   return (
     <div
       ref={setNodeRef}
-      className={clsx("flex min-h-[320px] min-w-0 flex-col bg-white transition-colors duration-150", isOver && "bg-emerald-50/70")}
+      className={clsx("flex min-h-[320px] min-w-0 flex-col bg-surface transition-colors duration-150", isOver && "bg-emerald-50/70")}
     >
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
         <span className="font-serif text-[14px] text-neutral-900">{col.label}</span>
@@ -78,7 +78,7 @@ function KanbanColumn({ col, leads, people, companies, onMove, loading }: { col:
           <div
             className={clsx(
               "flex flex-1 items-center justify-center rounded-sm border border-dashed text-[11px] transition-colors",
-              isOver ? "border-emerald-400 text-emerald-700" : "border-neutral-200 text-neutral-400",
+              isOver ? "border-emerald-400 text-emerald-300" : "border-neutral-200 text-neutral-400",
             )}
           >
             {isOver ? "Release to move here" : "Drop a card here"}
@@ -103,9 +103,9 @@ function LeadCard({ lead, person, company, onMove, index }: { lead: Lead; person
       {...listeners}
       {...attributes}
       className={clsx(
-        "wp-rise cursor-grab touch-none rounded-sm border border-neutral-200 bg-white px-2.5 py-2 text-[12px] active:cursor-grabbing",
-        "transition-[box-shadow,border-color] duration-150 hover:border-neutral-300 hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.08)]",
-        isDragging && "z-10 rotate-[0.5deg] border-neutral-900 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.3)]",
+        "wp-rise cursor-grab touch-none rounded-sm border border-neutral-200 bg-surface px-2.5 py-2 text-[12px] active:cursor-grabbing",
+        "transition-[box-shadow,border-color] duration-150 hover:border-neutral-300 hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_8px_24px_-8px_rgba(0,0,0,0.5)]",
+        isDragging && "z-10 rotate-[0.5deg] border-accent shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]",
       )}
     >
       <div className="flex items-start justify-between gap-1">
@@ -115,8 +115,8 @@ function LeadCard({ lead, person, company, onMove, index }: { lead: Lead; person
         </div>
         <span
           className={clsx(
-            "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 py-px text-[10px] font-semibold",
-            lead.owner === "ai" ? "bg-neutral-100 text-neutral-700" : "bg-neutral-900 text-white",
+            "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 py-px text-[11px] font-medium",
+            lead.owner === "ai" ? "bg-neutral-100 text-neutral-700" : "bg-accent text-white",
           )}
           title={lead.owner === "ai" ? "Last moved by an AI agent" : "Last moved by a rep"}
         >

@@ -81,11 +81,13 @@ export function PipelineBoard() {
   }
 
   return (
-    <div className="px-6 py-5">
-      <div className="mb-3 flex items-end justify-between">
+    <div className="px-8 py-8">
+      <div className="mb-5 flex items-end justify-between">
         <div>
-          <h1 className="font-serif text-2xl text-neutral-900">Pipeline</h1>
-          <p className="text-[12px] tabular-nums text-neutral-500">
+          <h1 className="k-title">
+            Your <span className="k-accent">pipeline</span>
+          </h1>
+          <p className="k-sub">
             {loading ? "Loading leads…" : `${leads.length} leads · drag a card to move it · every move shows who made it (AI or Rep)`}
           </p>
         </div>
@@ -97,7 +99,7 @@ export function PipelineBoard() {
         <LearningLoop />
       </div>
 
-      <h2 className="mb-2 mt-8 font-serif text-xl text-neutral-900">Analytics</h2>
+      <h2 className="mb-3 mt-10 text-[20px] text-neutral-950">Analytics</h2>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <Funnel data={byStage} />
         <VariantTable rows={analytics.variants} />

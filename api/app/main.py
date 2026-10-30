@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request  # noqa: E4
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sse_starlette.sse import EventSourceResponse  # noqa: E402
 
+from . import rl_api  # noqa: E402
 from . import bandit, billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking, verifier  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from .models import (AuditEvent, Company, Credits, ExpansionSegment, ExpansionUpdate, GraphData, ICP, Intake, Lead,  # noqa: E402
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Warmpath API", version="0.1.0", lifespan=lifespan)
 origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "http://localhost:3000").split(",") if o.strip()]
+app.include_router(rl_api.router, tags=["rl"])  # /preferences, /export/preferences, /env/*, /model/*
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
                    allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
@@ -171,7 +173,9 @@ def get_touches(lead_id: Optional[str] = None):
 @app.post("/touches/{touch_id}/review", response_model=Touch, dependencies=guard)
 def review_touch(touch_id: str, body: ReviewBody):
     # Review is the human-in-the-loop click: always logged as the rep, whatever the caller claims.
+    rl_api.remember_original(outreach.get_touch(touch_id))  # keep the pre-edit draft for DPO pairs
     t = outreach.review_touch(touch_id, body.action, "rep", body.body, body.subject)
+    rl_api.record_review(t, body.action)  # every human review becomes preference data
     if body.action == "approve" and t.channel == "email":
         try:
             t = outreach.send_touch(touch_id)  # approved by a human → send (SendGrid to DEMO_INBOX only, else simulated)

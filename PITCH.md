@@ -1,6 +1,6 @@
-# Warmpath: startup viability (one page)
+# Kindred: startup viability (one page)
 
-> **Clay finds leads. Warmpath tells you why now and who introduces you, and proves every claim.**
+> **Clay finds leads. Kindred tells you why now and who can introduce you, and proves every claim.**
 
 Written 30 Oct 2026 for the "Startup viability" line (15%) of the judging matrix in DESIGN.md §1. Numbers here are the single
 source of truth for the README, the demo and Q&A. Prices in the product (billing.py, CreditsMeter) must match §3.
@@ -26,7 +26,7 @@ already know that can introduce you), at a price you can see before you click.
 
 A seed to Series A founder who still does the selling (no AE yet), selling B2B at a **$5–50k ACV**. Today they pay for Clay or
 Apollo seats, hunt for mutual connections by hand on LinkedIn, or keep an SDR agency on retainer. One closed deal pays for a year
-of Warmpath. Second buyer (post-hackathon): the first SDR hire at that same company.
+of Kindred. Second buyer (post-hackathon): the first SDR hire at that same company.
 
 ## 3. Pricing: per verified lead, metered by Flexprice
 
@@ -61,7 +61,7 @@ Hunter verify, Claude tokens), so gross margin is ~75–85% at $1.00.
 
 ## 5. Competitors (detail in IDEATION.md)
 
-| Product | What they sell | Gap Warmpath fills |
+| Product | What they sell | Gap Kindred fills |
 |---|---|---|
 | Clay, Apollo | Enrichment and big databases | No proof per claim; credit spend is unpredictable |
 | Unify, Rox | Intent plays and revenue graphs for AE teams | Expensive, built for teams, not a solo founder |
@@ -89,7 +89,7 @@ Nobody else drops a claim it cannot cite, shows the warm intro path from your ow
 
 | Days | Do | Target |
 |---|---|---|
-| 0–30 | Ship the hackathon build as a free tier (50 credits). Post the demo on X and LinkedIn; message 50 founders in our own network, found with Warmpath. | 100 sign-ups, 10 paying founder packs |
+| 0–30 | Ship the hackathon build as a free tier (50 credits). Post the demo on X and LinkedIn; message 50 founders in our own network, found with Kindred. | 100 sign-ups, 10 paying founder packs |
 | 31–60 | Price test per verified lead vs. a $99/mo subscription with 5 founders. Add LinkedIn CSV import for warm paths. Case study: one deal closed from a warm intro. | $2k MRR, 1 public case study |
 | 61–90 | Partner with 3 accelerators (offer credits to each cohort). Launch the SDR-team plan with shared wallets. | $10k MRR, 2 accelerator deals |
 

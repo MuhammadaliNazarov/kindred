@@ -1,4 +1,4 @@
-// Demo seed for Warmpath. Product: Tenki (tenki.cloud). Every company and person below is FICTIONAL.
+// Demo seed for Kindred. Product: Tenki (tenki.cloud). Every company and person below is FICTIONAL.
 // All source URLs are placeholders (example.com) and verified:false, so the UI labels them "sample".
 import type {
   AuditEvent,

@@ -33,3 +33,19 @@ Output LoRA lands in `grpo-out/final`.
 On Tinker (Thinking Machines): use its GRPO/RL recipe with the same prompts (`make_prompt`) and pass
 `app.verifier.score(text, company, signal, allowed_domains=["tenki.cloud"])` as the reward function;
 no GPU needed locally.
+
+## 3. CPU post-training loop (GRPO + DPO + held-out eval) — no GPU
+- `rl/outreach_env.py`: OpenEnv/Gym-style `OutreachEnv.reset(seed)` / `.step(draft)`; reward = `app.verifier.score` normalised to [0,1].
+  HTTP: `POST /env/reset {seed?}`, `POST /env/step {episode_id, draft}`, `GET /env/tasks`.
+- Fixed group split by company hash (40% of companies held out → 30 eval prompts); training never sees eval companies.
+- HITL → DPO: `GET /preferences/stats`, `GET /export/preferences` (JSONL: human_edit / human_reject / verifier pairs).
+- `GET /model/eval` (rl/out/eval.json or `{status:"not_run"}`), `GET /model/train-log` (rl/out/train_log.json).
+
+On a CPU box (venv with torch CPU + trl/peft/datasets/transformers, e.g. `~/rl/bin/python`, or `cd rl && uv sync`):
+```
+cd api/rl
+~/rl/bin/python make_prompts.py --api http://localhost:8040          # optional: real leads
+~/rl/bin/python train_grpo_cpu.py --steps 40                          # SmolLM2-360M-Instruct, LoRA, G=4, 120 tok
+~/rl/bin/python eval.py --model HuggingFaceTB/SmolLM2-360M-Instruct --lora out/lora --n 30
+curl -s localhost:8040/export/preferences -o out/preferences.jsonl && ~/rl/bin/python train_dpo_cpu.py --steps 30   # optional
+```

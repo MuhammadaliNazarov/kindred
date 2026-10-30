@@ -1,6 +1,6 @@
-# Warmpath: the AI GTM Engine that only says what it can prove
+# Kindred: the AI GTM Engine that only says what it can prove
 
-Hackathon build for the "AI GTM Engine" spec (29 Oct 2026). Working name: **Warmpath**. This file is the System Design &
+Hackathon build for the "AI GTM Engine" spec (29 Oct 2026). Working name: **Kindred**. This file is the System Design &
 Architecture Document (a required deliverable) and the plan every build agent reads first.
 
 ## 1. What the judges score, and how we win each line

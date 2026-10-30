@@ -163,3 +163,38 @@ export type BanditState = {
   simulated: boolean;
   total_sent?: number;
 };
+
+// ---------- Post-training (Model · RL) ----------
+// `sample: true` marks a client-side fallback (no API reachable).
+export type PreferenceStats = { pairs: number; from_human: number; synthetic: number; sample?: boolean };
+export type EnvObservation = {
+  company?: string;
+  person?: string;
+  title?: string;
+  signal?: string;
+  source_url?: string;
+  source_quote?: string;
+  prompt?: string;
+  [k: string]: unknown;
+};
+export type EnvReset = { episode_id: string; observation: EnvObservation; sample?: boolean };
+export type EnvStep = { reward: number; max?: number; checks: VerifierCheck[]; done?: boolean; sample?: boolean };
+export type TrainPoint = { step: number; reward: number };
+export type EvalMetric = { name: string; base: number; trained: number | null };
+export type EvalExample = {
+  company: string;
+  base_text: string;
+  trained_text: string | null;
+  base_score: number;
+  trained_score: number | null;
+};
+export type ModelEval = {
+  status: "done" | "running" | "not_run" | string;
+  model_base: string;
+  model_trained: string | null;
+  n: number;
+  metrics: EvalMetric[];
+  examples: EvalExample[];
+  training?: { steps: number; reward_curve: number[] } | null;
+  sample?: boolean;
+};

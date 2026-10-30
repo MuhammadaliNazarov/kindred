@@ -128,14 +128,14 @@ export function AccountsGrid(props: AccountsGridProps) {
   return (
     <div className="@container">
     <table className="w-full table-fixed border-collapse text-[12px]">
-      <thead className="sticky top-0 z-10 bg-white shadow-[0_1px_0_#e5e5e5]">
+      <thead className="sticky top-0 z-10 bg-panel shadow-[0_1px_0_rgba(255,255,255,0.09)]">
         {table.getHeaderGroups().map((hg) => (
           <tr key={hg.id} className="border-b border-neutral-200">
             {hg.headers.map((h, i) => (
               <th
                 key={h.id}
                 className={clsx(
-                  "px-2 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-neutral-500",
+                  "px-2 py-1.5 text-left text-[11px] font-medium tracking-wide text-neutral-500",
                   colCls[i],
                 )}
               >
@@ -158,7 +158,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                 style={{ "--i": Math.min(i, 14) } as React.CSSProperties}
                 className={clsx(
                   "wp-rise cursor-pointer border-b border-neutral-200 align-middle transition-colors duration-100 hover:bg-neutral-50",
-                  selected && "bg-emerald-50/70 shadow-[inset_2px_0_0_#059669] hover:bg-emerald-50",
+                  selected && "bg-emerald-50/70 shadow-[inset_2px_0_0_#34d399] hover:bg-emerald-50",
                 )}
               >
                 {row.getAllCells().map((cell, ci) => (
@@ -181,7 +181,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                     onClick={() => onSelectPerson(p)}
                     className={clsx(
                       "wp-fade-in cursor-pointer border-b border-neutral-100 bg-neutral-50/50 transition-colors duration-100 hover:bg-neutral-100/70",
-                      selectedPersonId === p.id && "bg-emerald-50 shadow-[inset_2px_0_0_#059669] hover:bg-emerald-50",
+                      selectedPersonId === p.id && "bg-emerald-50 shadow-[inset_2px_0_0_#34d399] hover:bg-emerald-50",
                     )}
                   >
                     <td colSpan={COLS} className="overflow-hidden py-1.5 pl-9 pr-2">
@@ -226,10 +226,10 @@ function EnrichButton({ person, pending, blocked, onEnrich }: { person: Person; 
           ? "cursor-not-allowed border-rose-200 bg-rose-50 text-rose-400 line-through decoration-rose-300"
           : pending
             ? "cursor-wait border-neutral-200 text-neutral-400"
-            : "border-neutral-300 text-neutral-800 hover:border-neutral-900 hover:bg-neutral-50",
+            : "border-neutral-300 text-neutral-800 hover:border-accent hover:bg-neutral-50",
       )}
     >
-      {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className={clsx("h-3 w-3", !blocked && "text-amber-500")} />}
+      {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className={clsx("h-3 w-3", !blocked && "text-amber-300")} />}
       {pending ? "Verifying…" : "Verify & enrich"}
     </button>
   );

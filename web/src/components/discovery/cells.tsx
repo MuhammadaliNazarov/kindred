@@ -15,7 +15,7 @@ export function Tip({ content, children }: { content: ReactNode; children: React
           side="bottom"
           align="start"
           sideOffset={4}
-          className="z-50 max-w-sm rounded border border-neutral-200 bg-white p-2 text-[12px] leading-snug text-neutral-900 shadow-md"
+          className="z-50 max-w-sm rounded border border-neutral-200 bg-panel p-2 text-[12px] leading-snug text-neutral-900 shadow-md"
         >
           {content}
         </Tooltip.Content>
@@ -28,9 +28,9 @@ export function TierBadge({ tier }: { tier: Company["tier"] }) {
   return (
     <span
       className={clsx(
-        "inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm text-[11px] font-semibold",
+        "inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm text-[11px] font-medium",
         tier === "A" && "bg-emerald-600 text-white",
-        tier === "B" && "bg-amber-500 text-white",
+        tier === "B" && "bg-amber-500 text-[#1a1300]",
         tier === "C" && "bg-neutral-200 text-neutral-700",
       )}
     >
@@ -54,7 +54,7 @@ export function ScoreCell({ c }: { c: Company }) {
         }
       >
         <div className="flex h-1.5 w-16 overflow-hidden rounded-full bg-neutral-100">
-          <div className="h-full bg-neutral-800" style={{ width: `${fitPct}%` }} />
+          <div className="h-full bg-accent-hover" style={{ width: `${fitPct}%` }} />
           <div className="h-full bg-emerald-600" style={{ width: `${intentPct}%` }} />
         </div>
       </Tip>
@@ -75,8 +75,8 @@ export function SignalChip({ type }: { type: Signal["type"] }) {
   return (
     <span
       className={clsx(
-        "shrink-0 rounded-sm border px-1 py-px text-[10px] font-medium uppercase tracking-wide",
-        type === "churn_risk" ? "border-rose-200 text-rose-700" : "border-neutral-300 text-neutral-700",
+        "shrink-0 rounded-sm border px-1 py-px text-[11px] font-medium tracking-wide",
+        type === "churn_risk" ? "border-rose-200 text-rose-300" : "border-neutral-300 text-neutral-700",
       )}
     >
       {SIGNAL_LABEL[type]}
@@ -118,10 +118,10 @@ export function SourceList({ sources }: { sources: Source[] }) {
         <li key={i} className="space-y-0.5">
           <div className="flex items-center gap-1.5">
             <VerifiedTag verified={s.verified} />
-            <span className={clsx("font-medium", !s.verified && "text-rose-700 line-through")}>{s.title}</span>
+            <span className={clsx("font-medium", !s.verified && "text-rose-300 line-through")}>{s.title}</span>
           </div>
           {s.quote && <p className="italic text-neutral-600">&ldquo;{s.quote}&rdquo;</p>}
-          <a href={s.url} target="_blank" rel="noreferrer" className="block truncate text-emerald-700 underline">
+          <a href={s.url} target="_blank" rel="noreferrer" className="block truncate text-emerald-300 underline">
             {s.url}
           </a>
         </li>
@@ -134,8 +134,8 @@ export function VerifiedTag({ verified }: { verified: boolean }) {
   return (
     <span
       className={clsx(
-        "rounded-sm px-1 text-[10px] font-medium uppercase",
-        verified ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700",
+        "rounded-sm px-1 text-[11px] font-medium",
+        verified ? "bg-emerald-50 text-emerald-300" : "bg-rose-50 text-rose-300",
       )}
     >
       {verified ? "proved" : "dropped — quote not found"}
@@ -167,15 +167,15 @@ export function CitationChip({
       onClick={(e) => e.stopPropagation()}
       title={proved ? "Proved: quote found on the page. Opens the source." : "Dropped: quote not found on the page. Validator rejected it."}
       className={clsx(
-        "group inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border pl-1 pr-1.5 text-[10.5px] font-semibold uppercase tracking-wide tabular-nums transition-colors",
+        "group inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border pl-1 pr-1.5 text-[10.5px] font-medium tracking-wide tabular-nums transition-colors",
         proved
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-100"
-          : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400",
+          ? "border-emerald-200 bg-emerald-50 text-emerald-300 hover:border-emerald-500 hover:bg-emerald-100"
+          : "border-rose-200 bg-rose-50 text-rose-300 hover:border-rose-400",
       )}
     >
       {proved ? <ShieldCheck className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
       {!compact && <span className={clsx(!proved && "line-through decoration-rose-400")}>{label ?? (proved ? "Proved" : "Dropped")}</span>}
-      {count !== undefined && <span className={clsx("rounded-[2px] px-1 font-mono text-[10px]", proved ? "bg-emerald-600 text-white" : "bg-rose-600 text-white")}>{count}</span>}
+      {count !== undefined && <span className={clsx("rounded-[2px] px-1 font-mono text-[11px]", proved ? "bg-emerald-600 text-white" : "bg-rose-600 text-white")}>{count}</span>}
       <ExternalLink className="h-2.5 w-2.5 opacity-0 transition-opacity group-hover:opacity-70" />
     </a>
   );
@@ -191,7 +191,7 @@ export function SourceChips({ sources, showDropped, compact }: { sources: Source
   const shown = showDropped ? sources : verified;
   if (!shown.length) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium uppercase tracking-wide text-rose-600">
+      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium tracking-wide text-rose-300">
         <ShieldAlert className="h-3 w-3" />
         {dropped.length ? (compact ? `${dropped.length}` : `${dropped.length} dropped`) : "no source"}
       </span>
@@ -221,19 +221,19 @@ export function EmailStatus({ status }: { status: Enrichment["email_status"] }) 
   switch (status) {
     case "valid":
       return (
-        <span className="inline-flex items-center gap-0.5 text-emerald-600">
+        <span className="inline-flex items-center gap-0.5 text-emerald-300">
           <Check className="h-3.5 w-3.5" /> valid
         </span>
       );
     case "accept_all":
       return (
-        <span className="inline-flex items-center gap-0.5 text-amber-600">
+        <span className="inline-flex items-center gap-0.5 text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5" /> accept-all
         </span>
       );
     case "invalid":
       return (
-        <span className="inline-flex items-center gap-0.5 text-rose-600">
+        <span className="inline-flex items-center gap-0.5 text-rose-300">
           <X className="h-3.5 w-3.5" /> invalid
         </span>
       );
@@ -256,8 +256,8 @@ function InBadge({ muted }: { muted?: boolean }) {
   return (
     <span
       className={clsx(
-        "inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] text-[9px] font-bold leading-none",
-        muted ? "bg-neutral-100 text-neutral-300" : "bg-neutral-800 text-white",
+        "inline-flex h-3.5 w-3.5 items-center justify-center rounded-[2px] text-[11px] font-medium leading-none",
+        muted ? "bg-neutral-100 text-neutral-300" : "bg-accent-hover text-white",
       )}
     >
       in
@@ -273,8 +273,8 @@ export function EnrichmentIndicator({ e }: { e: Enrichment }) {
       <span
         className={clsx(
           "text-[11px]",
-          e.mx_ok === true && "text-emerald-600",
-          e.mx_ok === false && "text-rose-600",
+          e.mx_ok === true && "text-emerald-300",
+          e.mx_ok === false && "text-rose-300",
           e.mx_ok === null && "text-neutral-400",
         )}
       >

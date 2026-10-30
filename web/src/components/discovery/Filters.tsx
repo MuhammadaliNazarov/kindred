@@ -59,7 +59,7 @@ export function Filters({
               className={clsx(
                 "h-6 w-7 rounded-sm border font-medium",
                 on && t === "A" && "border-emerald-600 bg-emerald-600 text-white",
-                on && t === "B" && "border-amber-500 bg-amber-500 text-white",
+                on && t === "B" && "border-amber-500 bg-amber-500 text-[#1a1300]",
                 on && t === "C" && "border-neutral-400 bg-neutral-200 text-neutral-800",
                 !on && "border-neutral-200 text-neutral-400",
               )}
@@ -75,7 +75,7 @@ export function Filters({
         <select
           value={value.industry}
           onChange={(e) => onChange({ ...value, industry: e.target.value })}
-          className="h-6 rounded-sm border border-neutral-200 bg-white px-1"
+          className="h-6 rounded-sm border border-neutral-200 bg-surface px-1"
         >
           <option value="">All</option>
           {industries.map((i) => (
@@ -91,7 +91,7 @@ export function Filters({
         <select
           value={value.signal}
           onChange={(e) => onChange({ ...value, signal: e.target.value as DiscoveryFilters["signal"] })}
-          className="h-6 rounded-sm border border-neutral-200 bg-white px-1"
+          className="h-6 rounded-sm border border-neutral-200 bg-surface px-1"
         >
           <option value="">Any</option>
           {SIGNAL_TYPES.map((s) => (

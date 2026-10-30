@@ -26,7 +26,7 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
             className={clsx(
               "inline-flex max-w-[180px] items-center gap-1 rounded border px-1.5 py-px text-[11px] leading-4 transition-colors",
               source.verified
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-500"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-300 hover:border-emerald-500"
                 : "border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-neutral-400",
             )}
           >
@@ -35,13 +35,13 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
           </a>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content sideOffset={6} className="z-50 w-72 rounded-md border border-neutral-200 bg-white p-3 text-[12px] shadow-sm">
+          <Tooltip.Content sideOffset={6} className="z-50 w-72 rounded-md border border-neutral-200 bg-panel p-3 text-[12px] shadow-sm">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="truncate font-medium">{source.title}</span>
               <span
                 className={clsx(
-                  "shrink-0 rounded border px-1 text-[10px] uppercase tracking-wide",
-                  source.verified ? "border-emerald-300 text-emerald-700" : "border-neutral-300 text-neutral-500",
+                  "shrink-0 rounded border px-1 text-[11px] tracking-wide",
+                  source.verified ? "border-emerald-300 text-emerald-300" : "border-neutral-300 text-neutral-500",
                 )}
               >
                 {source.verified ? "proved" : "sample"}
@@ -59,7 +59,7 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
 }
 
 export function SourceChips({ sources }: { sources?: Source[] }) {
-  if (!sources?.length) return <span className="text-[11px] text-rose-600">no source</span>;
+  if (!sources?.length) return <span className="text-[11px] text-rose-300">no source</span>;
   return (
     <span className="flex flex-wrap gap-1">
       {sources.map((s, i) => (

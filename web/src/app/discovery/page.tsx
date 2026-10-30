@@ -152,7 +152,7 @@ export default function DiscoveryPage() {
         push(step({ agent: "enricher", kind: "validate", text: `${p.name}: email ${r.person.enrichment.email_status}, MX ${r.person.enrichment.mx_ok ? "ok" : "?"} (${r.person.enrichment.provider}).` }));
       } else {
         setEnrichOverrides((o) => ({ ...o, [p.id]: p.enrichment }));
-        push(step({ agent: "enricher", kind: "meter", text: `${r.detail} (Flexprice credit gate).` }));
+        push(step({ agent: "enricher", kind: "meter", text: r.blocked ? `${r.detail} (Flexprice credit gate).` : `Skipped: ${r.detail}` }));
       }
       void refresh();
     });
@@ -160,15 +160,19 @@ export default function DiscoveryPage() {
 
   return (
     <Tooltip.Provider>
-      <div className="flex h-full min-h-0 flex-col bg-white text-neutral-900">
-        <header className="flex items-baseline gap-3 px-4 pb-1 pt-4">
-          <h1 className="font-serif text-[22px] leading-none">Discovery</h1>
-          <span className="text-[12px] text-neutral-500">Accounts and buyers, every claim with its source.</span>
+      <div className="flex h-full min-h-0 flex-col text-neutral-900">
+        <header className="flex items-end gap-4 px-6 pb-3 pt-6">
+          <div>
+            <h1 className="k-title">
+              Accounts with a <span className="k-accent">why now</span>
+            </h1>
+            <p className="k-sub">Accounts and buyers, every claim with its source.</p>
+          </div>
           <button
             type="button"
             onClick={() => void onDiscover()}
             disabled={discovering}
-            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-neutral-900 disabled:cursor-wait disabled:text-neutral-400"
+            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-accent disabled:cursor-wait disabled:text-neutral-400"
           >
             {discovering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             {discovering ? "Discovering…" : "Run discovery"}
@@ -186,7 +190,7 @@ export default function DiscoveryPage() {
         <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
           <div className="min-h-[280px] min-w-0 flex-1 overflow-auto">
             {error ? (
-              <div className="p-6 text-[12px] text-rose-600">Couldn&apos;t load accounts: {error}</div>
+              <div className="p-6 text-[12px] text-rose-300">Couldn&apos;t load accounts: {error}</div>
             ) : companies === null ? (
               <LoadingRows />
             ) : filtered.length === 0 ? (
@@ -196,11 +200,11 @@ export default function DiscoveryPage() {
                 </div>
                 <div>{companies.length === 0 ? "Generate the ICP first, then run discovery to pull accounts with cited signals." : "Widen the tier or signal filter to see more accounts."}</div>
                 {companies.length === 0 ? (
-                  <button type="button" onClick={() => void onDiscover()} className="mt-1 h-7 rounded-sm border border-neutral-900 bg-neutral-900 px-2.5 text-[12px] font-medium text-white hover:bg-neutral-800">
+                  <button type="button" onClick={() => void onDiscover()} className="mt-1 h-7 rounded-sm border border-accent bg-accent px-2.5 text-[12px] font-medium text-white hover:bg-accent-hover">
                     Run discovery
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="mt-1 h-7 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-neutral-900">
+                  <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="mt-1 h-7 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-accent">
                     Clear filters
                   </button>
                 )}

@@ -1,4 +1,4 @@
-# Warmpath — System Design & Architecture
+# Kindred — System Design & Architecture
 
 The spec's required System Design document, written from the code as it runs on 30 Oct 2026. The original plan is in
 [DESIGN.md](DESIGN.md); where the two differ, this file is right (e.g. the graph store is Kùzu embedded, not Neo4j).

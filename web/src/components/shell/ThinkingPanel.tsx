@@ -15,13 +15,13 @@ const KIND_ICON: Record<ThinkingStep["kind"], React.ComponentType<{ className?: 
 };
 
 const AGENT_TONE: Record<string, string> = {
-  planner: "bg-neutral-900 text-white border-neutral-900",
-  icp: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  discovery: "bg-sky-50 text-sky-700 border-sky-200",
-  enricher: "bg-violet-50 text-violet-700 border-violet-200",
+  planner: "bg-accent text-white border-accent",
+  icp: "bg-emerald-50 text-emerald-300 border-emerald-200",
+  discovery: "bg-sky-50 text-sky-300 border-sky-200",
+  enricher: "bg-violet-50 text-violet-300 border-violet-200",
   builder: "bg-neutral-100 text-neutral-700 border-neutral-200",
-  reviewer: "bg-amber-50 text-amber-700 border-amber-200",
-  security: "bg-rose-50 text-rose-700 border-rose-200",
+  reviewer: "bg-amber-50 text-amber-300 border-amber-200",
+  security: "bg-rose-50 text-rose-300 border-rose-200",
 };
 
 const DROPPED = /\b(dropped|quote not found|rejected|failed|blocked)\b/i;
@@ -34,14 +34,14 @@ function time(at: string) {
 export function ThinkingPanel({ onClose }: { onClose: () => void }) {
   const { steps } = useThinking();
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-neutral-200 bg-white">
-      <div className="flex h-12 items-center justify-between border-b border-neutral-200 px-4">
+    <aside className="flex w-80 shrink-0 flex-col border-l border-neutral-200 bg-surface">
+      <div className="flex h-16 items-center justify-between border-b border-neutral-200 px-4">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
           </span>
-          <span className="font-serif text-[15px]">Agent Thinking</span>
+          <span className="font-display text-[16px] font-medium tracking-[-0.02em]">Agent Thinking</span>
           <span className="text-[11px] tabular-nums text-neutral-400">{steps.length}</span>
         </div>
         <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded text-neutral-500 hover:bg-neutral-100" aria-label="Collapse panel">
@@ -79,19 +79,19 @@ export function ThinkingPanel({ onClose }: { onClose: () => void }) {
               <div className="mb-1 flex items-center gap-2">
                 <span
                   className={clsx(
-                    "rounded border px-1.5 py-px text-[10px] font-medium uppercase tracking-wide",
+                    "rounded border px-1.5 py-px text-[11px] font-medium tracking-wide",
                     AGENT_TONE[s.agent] ?? "border-neutral-200 bg-neutral-50 text-neutral-700",
                   )}
                 >
                   {s.agent}
                 </span>
-                {dropped ? <XCircle className="h-3.5 w-3.5 text-rose-600" /> : <Icon className="h-3.5 w-3.5 text-neutral-400" />}
-                <span className={clsx("text-[10px]", dropped ? "font-medium text-rose-600" : "text-neutral-400")}>
+                {dropped ? <XCircle className="h-3.5 w-3.5 text-rose-300" /> : <Icon className="h-3.5 w-3.5 text-neutral-400" />}
+                <span className={clsx("text-[11px]", dropped ? "font-medium text-rose-300" : "text-neutral-400")}>
                   {dropped ? "dropped" : s.kind}
                 </span>
-                <span className="ml-auto text-[10px] tabular-nums text-neutral-400">{time(s.at)}</span>
+                <span className="ml-auto text-[11px] tabular-nums text-neutral-400">{time(s.at)}</span>
               </div>
-              <p className={clsx("text-[12px] leading-snug", dropped ? "text-rose-800" : "text-neutral-800")}>{s.text}</p>
+              <p className={clsx("text-[12px] leading-snug", dropped ? "text-rose-300" : "text-neutral-800")}>{s.text}</p>
               {s.cypher && (
                 <pre className="mt-1.5 overflow-x-auto rounded border border-neutral-200 bg-neutral-50 p-2 font-mono text-[10.5px] leading-relaxed text-neutral-700">
                   {s.cypher}

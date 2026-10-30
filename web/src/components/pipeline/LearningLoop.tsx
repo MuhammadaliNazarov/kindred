@@ -8,10 +8,10 @@ import { useThinking } from "@/components/shell/context";
 import { Badge, uid } from "@/components/outreach/bits";
 
 const COLORS: Record<string, string> = {
-  signal_hook__call: "#a3a3a3",
-  signal_hook__doc: "#525252",
-  warmpath_hook__call: "#d97706",
-  warmpath_hook__doc: "#059669",
+  signal_hook__call: "#6f8dff",
+  signal_hook__doc: "#9fd3ff",
+  warmpath_hook__call: "#fbbf24",
+  warmpath_hook__doc: "#34d399",
 };
 const label = (id: string) => id.replace("_hook__", " hook · ").replace("warmpath", "warm-path").replace(/call$/, "call CTA").replace(/doc$/, "doc CTA");
 const pct = (v: number) => `${(v * 100).toFixed(v > 0 && v < 0.1 ? 1 : 0)}%`;
@@ -35,17 +35,17 @@ function ShareChart({ data }: { data: BanditState }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="h-[140px] w-full" role="img" aria-label="Traffic share per arm over sends">
       {[0, 0.5, 1].map((v) => (
         <g key={v}>
-          <line x1={P} x2={W - 6} y1={y(v)} y2={y(v)} stroke="#e5e5e5" strokeWidth={1} />
-          <text x={P - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#a3a3a3">{v * 100}%</text>
+          <line x1={P} x2={W - 6} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+          <text x={P - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#8d99b8">{v * 100}%</text>
         </g>
       ))}
-      <text x={W - 6} y={H - 6} textAnchor="end" fontSize={9} fill="#a3a3a3">{maxStep} sends</text>
-      <text x={P} y={H - 6} fontSize={9} fill="#a3a3a3">0</text>
+      <text x={W - 6} y={H - 6} textAnchor="end" fontSize={9} fill="#8d99b8">{maxStep} sends</text>
+      <text x={P} y={H - 6} fontSize={9} fill="#8d99b8">0</text>
       {data.arms.map((a) => (
         <polyline
           key={a.id}
           fill="none"
-          stroke={COLORS[a.id] ?? "#737373"}
+          stroke={COLORS[a.id] ?? "#8d99b8"}
           strokeWidth={2}
           strokeLinejoin="round"
           points={h.map((p) => `${x(p.step)},${y(p.shares[a.id] ?? 0)}`).join(" ")}
@@ -95,10 +95,10 @@ export function LearningLoop() {
   }
 
   return (
-    <section className="border border-neutral-200 bg-white">
+    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2">
         <div className="flex items-center gap-2">
-          <h3 className="whitespace-nowrap font-serif text-[15px] text-neutral-900">Learning loop</h3>
+          <h3 className="whitespace-nowrap font-serif text-[18px] text-neutral-900">Learning loop</h3>
           <span className="hidden text-[11px] text-neutral-500 md:inline">Thompson sampling over hook × CTA · reward = reply</span>
           {data?.simulated && <Badge tone="warn">SIMULATED</Badge>}
           {data && !data.simulated && <Badge tone="ok">real replies</Badge>}
@@ -112,7 +112,7 @@ export function LearningLoop() {
           <button
             onClick={simulate}
             disabled={busy}
-            className="rounded-sm border border-neutral-900 bg-neutral-900 px-2.5 py-1 text-[12px] font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+            className="rounded-sm border border-accent bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             <span className="whitespace-nowrap">{busy ? "Simulating…" : "Simulate 300 sends"}</span>
           </button>
@@ -120,7 +120,7 @@ export function LearningLoop() {
       </div>
       <div className="grid grid-cols-1 gap-4 p-3 lg:grid-cols-[1.2fr_1fr]">
         <div>
-          <div className="mb-1 grid grid-cols-[minmax(0,1fr)_44px_52px_48px] gap-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+          <div className="mb-1 grid grid-cols-[minmax(0,1fr)_44px_52px_48px] gap-2 text-[11px] font-medium tracking-wider text-neutral-500">
             <span>Arm</span>
             <span className="text-right">Traffic</span>
             <span className="text-right">Replies</span>
@@ -152,9 +152,9 @@ export function LearningLoop() {
           </p>
         </div>
         <div>
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Traffic share over sends</div>
+          <div className="mb-1 text-[11px] font-medium tracking-wider text-neutral-500">Traffic share over sends</div>
           {data && <ShareChart data={data} />}
-          {data?.simulated && <p className="mt-1 text-[11px] text-amber-700">Simulated replies for the demo; real stats update from reply webhooks and pipeline moves.</p>}
+          {data?.simulated && <p className="mt-1 text-[11px] text-amber-300">Simulated replies for the demo; real stats update from reply webhooks and pipeline moves.</p>}
         </div>
       </div>
     </section>

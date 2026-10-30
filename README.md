@@ -1,4 +1,4 @@
-# Warmpath — the AI GTM engine that only says what it can prove
+# Kindred — the AI GTM engine that only says what it can prove
 
 [![snyk](https://github.com/AliNazaarov/warmpath/actions/workflows/snyk.yml/badge.svg)](https://github.com/AliNazaarov/warmpath/actions/workflows/snyk.yml)
 
@@ -7,7 +7,7 @@
 
 Hackathon build for the "AI GTM Engine" spec (29 Oct 2026). Demo product: [Tenki](https://tenki.cloud) (agent sandboxes).
 
-Clay finds leads. Warmpath tells you **why now** and **who can introduce you**, and proves every claim:
+Clay finds leads. Kindred tells you **why now** and **who can introduce you**, and proves every claim:
 
 - **Every prospect claim has a source URL and a verbatim quote.** A validator fetches the page and checks the quote is on it. If it is not, the claim is dropped before it reaches the graph (`GET /dropped` shows what was thrown away).
 - **Nothing is sent without a human click.** Drafts sit in a HITL queue with a Reviewer verdict (claims vs. sources, verifier score) and a Security verdict (links, PII, tracking). Agents cannot reach the send route at all.

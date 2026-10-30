@@ -1,17 +1,83 @@
 @import "tailwindcss";
 
+/*
+ * Kindred: premium dark. Deep navy canvas, glass surfaces, one accent blue.
+ * The Tailwind neutral / status scales are remapped for dark so dense grids keep their structure.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-0: #070d22;
+  --bg-1: #0b1430;
+  --panel: #0e1838;
+  --accent: #2f5bff;
+  --accent-hover: #4a70ff;
+  --accent-2: #9fd3ff;
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #fb7185;
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+@theme {
+  --color-neutral-50: rgba(255, 255, 255, 0.035);
+  --color-neutral-100: rgba(255, 255, 255, 0.06);
+  --color-neutral-200: rgba(255, 255, 255, 0.09);
+  --color-neutral-300: rgba(255, 255, 255, 0.18);
+  --color-neutral-400: #8d99b8;
+  --color-neutral-500: #a1acc8;
+  --color-neutral-600: #b7c0d8;
+  --color-neutral-700: #ccd3e4;
+  --color-neutral-800: #dfe4ef;
+  --color-neutral-900: #f2f5fb;
+  --color-neutral-950: #ffffff;
+
+  --color-emerald-50: rgba(52, 211, 153, 0.1);
+  --color-emerald-100: rgba(52, 211, 153, 0.16);
+  --color-emerald-200: rgba(52, 211, 153, 0.3);
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #34d399;
+  --color-emerald-600: #047857;
+  --color-emerald-700: #065f46;
+
+  --color-rose-50: rgba(251, 113, 133, 0.1);
+  --color-rose-200: rgba(251, 113, 133, 0.32);
+  --color-rose-300: #fda4af;
+  --color-rose-400: #fb7185;
+  --color-rose-600: #be123c;
+
+  --color-amber-50: rgba(251, 191, 36, 0.1);
+  --color-amber-200: rgba(251, 191, 36, 0.3);
+  --color-amber-300: #fcd34d;
+  --color-amber-500: #fbbf24;
+
+  --color-violet-50: rgba(167, 139, 250, 0.12);
+  --color-violet-200: rgba(167, 139, 250, 0.32);
+  --color-violet-300: #c4b5fd;
+  --color-sky-50: rgba(159, 211, 255, 0.1);
+  --color-sky-200: rgba(159, 211, 255, 0.3);
+  --color-sky-300: #9fd3ff;
+
+  --color-accent: #2f5bff;
+  --color-accent-hover: #4a70ff;
+  --color-accent-2: #9fd3ff;
+  --color-panel: #0e1838;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+  --font-serif: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Glass card fill with a soft top highlight */
+@utility bg-surface {
+  background-color: rgba(255, 255, 255, 0.04);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 96px);
 }
 
 html,
@@ -25,15 +91,29 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-0);
+  background-image:
+    radial-gradient(1px 1px at 12% 8%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 34% 3%, rgba(255, 255, 255, 0.25), transparent 60%),
+    radial-gradient(1px 1px at 58% 11%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(1px 1px at 76% 5%, rgba(255, 255, 255, 0.22), transparent 60%),
+    radial-gradient(1px 1px at 91% 14%, rgba(255, 255, 255, 0.28), transparent 60%),
+    radial-gradient(1.5px 1.5px at 47% 18%, rgba(159, 211, 255, 0.4), transparent 60%),
+    radial-gradient(60% 45% at 50% -10%, rgba(47, 91, 255, 0.28), transparent 70%),
+    radial-gradient(40% 30% at 85% 0%, rgba(159, 211, 255, 0.1), transparent 70%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  background-attachment: fixed;
+  color: var(--color-neutral-900);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 h1,
 h2,
 h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
@@ -41,10 +121,82 @@ p {
   text-wrap: pretty;
 }
 
+/* Typography scale */
+.k-hero {
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-neutral-950);
+}
+.k-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-neutral-950);
+}
+.k-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-neutral-500);
+}
+.k-accent {
+  color: #6f8dff; /* accent blue, lifted for AA text contrast on navy */
+}
+
+/* Numbers, scores, code: Geist Mono, tabular */
+:not(p).tabular-nums,
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dense grids stay 13px and readable */
+table {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+tbody tr {
+  transition: background-color 120ms ease-out;
+}
+tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+/* Primary CTA + active pill glow */
+.bg-accent {
+  box-shadow: 0 0 0 1px rgba(111, 141, 255, 0.35) inset, 0 6px 24px -6px rgba(47, 91, 255, 0.65);
+}
+
+input,
+textarea,
+select {
+  color: var(--color-neutral-900);
+  background-color: transparent;
+}
+option {
+  background-color: var(--panel);
+  color: var(--color-neutral-900);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-neutral-400);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
 /* thin, quiet scrollbars for dense panes */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d4d4d4 transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 
 /* Tactile press for buttons; opt out with .no-press */
@@ -98,8 +250,8 @@ button {
 
 /* Attention pulse on the credits bar when it hits zero */
 @keyframes wp-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.45); }
-  100% { box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.5); }
+  100% { box-shadow: 0 0 0 8px rgba(251, 113, 133, 0); }
 }
 .wp-pulse-ring {
   animation: wp-pulse-ring 1.1s ease-out 3;
@@ -107,7 +259,7 @@ button {
 
 /* Soft highlight that fades: used when a row/field was just updated */
 @keyframes wp-flash {
-  from { background-color: rgba(16, 185, 129, 0.18); }
+  from { background-color: rgba(52, 211, 153, 0.2); }
   to { background-color: transparent; }
 }
 .wp-flash {
@@ -120,7 +272,7 @@ button {
   to { background-position: 200% 0; }
 }
 .wp-skeleton {
-  background: linear-gradient(90deg, #f5f5f5 25%, #ebebeb 50%, #f5f5f5 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
   background-size: 200% 100%;
   animation: wp-shimmer 1.4s linear infinite;
   border-radius: 3px;
@@ -139,4 +291,9 @@ button {
   button:active {
     transform: none;
   }
+}
+
+.font-serif {
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }

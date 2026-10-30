@@ -53,7 +53,7 @@ export function CreditsMeter() {
       {credits.blocked && (
         <span
           className={clsx(
-            "wp-fade-in flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-rose-200 bg-rose-50 px-2 text-[12px] font-medium text-rose-700",
+            "wp-fade-in flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-rose-200 bg-rose-50 px-2 text-[12px] font-medium text-rose-300",
             ring && "wp-pulse-ring",
           )}
           onAnimationEnd={() => setRing(false)}
@@ -61,14 +61,14 @@ export function CreditsMeter() {
         >
           <AlertTriangle className="h-3.5 w-3.5" />
           <span>Enrichment paused</span>
-          <span className="hidden font-normal text-rose-600 2xl:inline">· out of credits</span>
+          <span className="hidden font-normal text-rose-300 2xl:inline">· out of credits</span>
         </span>
       )}
       <Tooltip.Provider delayDuration={150}>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <button className="no-press flex h-7 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2 hover:bg-neutral-50" aria-label="Credits">
-              <span className="text-[11px] uppercase tracking-wide text-neutral-500">Credits</span>
+              <span className="text-[11px] tracking-wide text-neutral-500">Credits</span>
               <span className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-200">
                 <span
                   className={clsx(
@@ -78,7 +78,7 @@ export function CreditsMeter() {
                   style={{ width: `${pct}%` }}
                 />
               </span>
-              <span className={clsx("text-[12px] tabular-nums", credits.blocked && "font-medium text-rose-600")}>
+              <span className={clsx("text-[12px] tabular-nums", credits.blocked && "font-medium text-rose-300")}>
                 <Tick value={credits.balance} />
                 <span className="text-neutral-400"> / {credits.granted}</span>
               </span>
@@ -87,7 +87,7 @@ export function CreditsMeter() {
           <Tooltip.Portal>
             <Tooltip.Content
               sideOffset={6}
-              className="z-50 w-56 rounded-md border border-neutral-200 bg-white p-3 text-[12px] shadow-md"
+              className="z-50 w-56 rounded-md border border-neutral-200 bg-panel p-3 text-[12px] shadow-md"
             >
               <div className="mb-2 font-medium">Usage by event (Flexprice)</div>
               <table className="w-full tabular-nums">

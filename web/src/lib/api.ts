@@ -1,4 +1,4 @@
-// Client for the Warmpath API. Every call tries the real API (NEXT_PUBLIC_API_URL) and falls back to an
+// Client for the Kindred API. Every call tries the real API (NEXT_PUBLIC_API_URL) and falls back to an
 // in-memory copy of the seed, so the UI works with no backend. Mutations update the in-memory copy.
 import type {
   Actor,
@@ -17,6 +17,11 @@ import type {
   WarmPath,
   BanditState,
   VerifyResult,
+  PreferenceStats,
+  EnvReset,
+  EnvStep,
+  TrainPoint,
+  ModelEval,
 } from "./types";
 import {
   seedAudit,
@@ -178,7 +183,7 @@ export function moveLead(id: string, stage: Stage, actor: Actor): Promise<Lead |
 }
 
 // ---------- Enrichment (Flexprice-gated) ----------
-export type EnrichResult = { ok: true; person: Person } | { ok: false; blocked: true; detail: string };
+export type EnrichResult = { ok: true; person: Person } | { ok: false; blocked: boolean; detail: string };
 
 export async function enrichLead(personId: string, leadId?: string): Promise<EnrichResult> {
   const lead = db.leads.find((l) => l.person_id === personId);
@@ -204,6 +209,11 @@ export async function enrichLead(personId: string, leadId?: string): Promise<Enr
       signal: AbortSignal.timeout(8000),
     });
     if (res.status === 402) return { ok: false, blocked: true, detail: "Enrichment paused — out of credits" };
+    if (res.status === 422 || res.status === 404) {
+      const b = await res.json().catch(() => null);
+      const d = b?.detail;
+      return { ok: false, blocked: false, detail: typeof d === "string" ? d : d?.error ?? "Can't enrich: no verified company domain" };
+    }
     if (!res.ok) throw new Error(String(res.status));
     const body = await res.json();
     return { ok: true, person: (body.person ?? body) as Person };
@@ -473,3 +483,100 @@ export const simulateBandit = (sends = 300, seed?: number) =>
   call<BanditState>("/bandit/simulate", () => localSimulate(sends, seed), post({ sends, seed }));
 export const resetBanditSim = () =>
   call<BanditState>("/bandit/reset", () => (localBandit = banditState(freshStats(), [{ step: 0, shares: shares(freshStats()) }], false)), post());
+
+// ---------- Post-training: preference data, RL env, training log, eval ----------
+// Every fallback below is SAMPLE data (flagged `sample: true`) so the page renders with no API.
+export const exportPreferencesUrl = () => (API ? `${API}/export/preferences` : null);
+
+export const getPreferenceStats = () =>
+  call<PreferenceStats>("/preferences/stats", () => {
+    const human = db.touches.filter((t) => t.status !== "draft").length;
+    return { pairs: human + 48, from_human: human, synthetic: 48, sample: true };
+  });
+
+const localEpisodes = new Map<string, { company: string; signal: string; context: string; domain: string }>();
+
+function localReset(): EnvReset {
+  const withSig = db.companies.filter((c) => c.signals?.length);
+  const co = withSig[Math.floor(Math.random() * withSig.length)] ?? db.companies[0];
+  const sig = co.signals[0];
+  const person = db.people.find((p) => p.company_id === co.id);
+  const episode_id = `sample_${Date.now().toString(36)}`;
+  const signal = sig ? `${sig.summary} ${sig.type.replace("_", " ")}` : "";
+  localEpisodes.set(episode_id, { company: co.name, signal, context: `${sig?.source?.quote ?? ""} ${sig?.date ?? ""}`, domain: co.domain ?? "" });
+  return {
+    episode_id,
+    sample: true,
+    observation: {
+      company: co.name,
+      person: person?.name,
+      title: person?.title,
+      signal: sig?.summary,
+      source_url: sig?.source?.url,
+      source_quote: sig?.source?.quote,
+    },
+  };
+}
+
+function localStep(episode_id: string, draft: string): EnvStep {
+  const ep = localEpisodes.get(episode_id);
+  if (!ep) return { reward: 0, max: 4.5, checks: [{ name: "known episode", pass: false, detail: "reset first" }], done: true, sample: true };
+  const v = localVerify(draft, ep.company, ep.signal, ep.context, [ep.domain, "tenki.cloud"].filter(Boolean));
+  return { reward: v.score, max: v.max, checks: v.checks, done: true, sample: true };
+}
+
+export const envReset = () => call<EnvReset>("/env/reset", localReset, post({}));
+export const envStep = (episode_id: string, draft: string) =>
+  call<EnvStep>("/env/step", () => localStep(episode_id, draft), post({ episode_id, draft }));
+
+// Sample curve: noisy rise from ~1.6 to ~3.9 over 40 GRPO steps (deterministic).
+const sampleCurve = (): TrainPoint[] => {
+  const r = mulberry(11);
+  return Array.from({ length: 40 }, (_, i) => ({ step: i + 1, reward: Math.round((1.6 + 2.3 * (1 - Math.exp(-i / 12)) + (r() - 0.5) * 0.5) * 100) / 100 }));
+};
+
+// Real API: points (may be empty → "not run yet"). API unreachable: SAMPLE curve, flagged.
+export const getTrainLog = () =>
+  call<TrainPoint[] | { points?: TrainPoint[]; sample?: boolean }>("/model/train-log", () => ({ points: sampleCurve(), sample: true })).then((r) =>
+    Array.isArray(r) ? { points: r, sample: false } : { points: r.points ?? [], sample: !!r.sample },
+  );
+
+const SAMPLE_EVAL: ModelEval = {
+  status: "done",
+  sample: true,
+  model_base: "Qwen2.5-0.5B-Instruct",
+  model_trained: "Qwen2.5-0.5B-Instruct + GRPO (sample)",
+  n: 24,
+  metrics: [
+    { name: "Mean verifier reward", base: 2.1, trained: 3.8 },
+    { name: "Cites the signal", base: 0.46, trained: 0.92 },
+    { name: "Question CTA", base: 0.58, trained: 0.96 },
+    { name: "No unsupported claims", base: 0.62, trained: 0.88 },
+  ],
+  examples: [
+    {
+      company: "Northwind Labs",
+      base_text: "Hi! We help teams like yours move faster with the best cloud platform. Guaranteed 10x speedups. Let me know!",
+      trained_text: "Mira, saw Northwind Labs is hiring two platform engineers for agent CI. Tenki runs agent sandboxes so those hires skip the runner yak-shave. Worth a 15-min call this week?",
+      base_score: 0.5,
+      trained_score: 4.5,
+    },
+    {
+      company: "Halcyon AI",
+      base_text: "Hello, I wanted to reach out about our product. It is very fast and cheap and many companies use it.",
+      trained_text: "Oskar, Halcyon AI's post on moving RL rollouts off laptops caught my eye. Tenki gives each rollout an isolated CPU sandbox in seconds. Want the one-page architecture doc?",
+      base_score: 1.0,
+      trained_score: 4.0,
+    },
+    {
+      company: "Quillstack",
+      base_text: "Quillstack seems great. We raised $50M and are the leader in sandboxes, you should switch today.",
+      trained_text: "Talia, congrats on Quillstack's seed round. Teams at your stage usually hit flaky CI first; Tenki's sandboxes fix that without a platform hire. Worth a quick chat?",
+      base_score: 1.5,
+      trained_score: 4.0,
+    },
+  ],
+  training: { steps: 40, reward_curve: [] },
+};
+
+export const getModelEval = () => call<ModelEval>("/model/eval", () => SAMPLE_EVAL);

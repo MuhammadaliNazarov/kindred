@@ -1,17 +1,17 @@
-# Warmpath: 2:30 demo script
+# Kindred: 2:30 demo script
 
 App: https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · Code: https://github.com/AliNazaarov/warmpath
 
 ## The product in one breath
 
-Warmpath is an AI sales team for a startup. You describe your product. It works out who to sell to and finds real companies
+Kindred is an AI sales team for a startup. You describe your product. It works out who to sell to and finds real companies
 that need it right now. It also finds who you know that can introduce you, and writes the first messages. Every claim links
 to the web page it came from, and nothing is sent until a human approves it.
 
-**One line:** "Clay finds leads. Warmpath tells you *why now* and *who can introduce you*, and proves every claim."
+**One line:** "Clay finds leads. Kindred tells you *why now* and *who can introduce you*, and proves every claim."
 
 **Why it matters:** AI sales tools today spam people with made-up facts (11x, Apollo complaints) or burn credits unpredictably
-(Clay). Warmpath only says what it can prove, shows the cost per verified lead, and keeps a human in charge.
+(Clay). Kindred only says what it can prove, shows the cost per verified lead, and keeps a human in charge.
 
 ## Before you record (5 min)
 
@@ -24,7 +24,7 @@ to the web page it came from, and nothing is sent until a human approves it.
 
 **0:00–0:15 · Hook** [on Intake]
 > "Every AI sales tool can find 10,000 leads. None can tell you *why now*, *who can introduce you*, or prove a single claim.
-> Warmpath does all three. Today we're selling Tenki, the sandbox company."
+> Kindred does all three. Today we're selling Tenki, the sandbox company."
 
 **0:15–0:35 · Intake → ICP** [click "Use Tenki demo" → "Generate ICP"]
 > "I describe the product in plain words. The agent fills in the rest, including my own past employers, for warm intros.
@@ -57,7 +57,7 @@ to the web page it came from, and nothing is sent until a human approves it.
 **2:15–2:30 · Pipeline + learning** [go to Pipeline, drag a card to Replied, click **Simulate 300 sends**]
 > "Every lead moves through the pipeline, and we always know whether the AI or a person moved it. And it learns: each reply
 > is a reward, and traffic shifts to the message that works."
-**Close:** "Warmpath: every claim cited, every intro warm, every lead priced. Built on Tenki, Band, Flexprice and Tavily."
+**Close:** "Kindred: every claim cited, every intro warm, every lead priced. Built on Tenki, Band, Flexprice and Tavily."
 
 ## If something isn't live yet
 

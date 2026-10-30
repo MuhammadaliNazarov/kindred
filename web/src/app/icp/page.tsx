@@ -39,7 +39,7 @@ function Row({ title, sub, confidence, sources }: { title: React.ReactNode; sub?
 
 function Card({ title, count, children, className, index = 0 }: { title: string; count?: number; children: React.ReactNode; className?: string; index?: number }) {
   return (
-    <section style={{ "--i": index * 2 } as React.CSSProperties} className={clsx("wp-rise rounded-lg border border-neutral-200 bg-white", className)}>
+    <section style={{ "--i": index * 2 } as React.CSSProperties} className={clsx("wp-rise rounded-lg border border-neutral-200 bg-surface", className)}>
       <header className="flex items-baseline justify-between border-b border-neutral-200 px-4 py-2.5">
         <h3 className="font-serif text-[16px] tracking-tight">{title}</h3>
         {count !== undefined && <span className="text-[11px] tabular-nums text-neutral-400">{count}</span>}
@@ -117,22 +117,22 @@ export default function ICPPage() {
   const size = icp.company_size.value;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-6">
+    <div className="mx-auto max-w-6xl px-8 py-8">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[30px] leading-tight tracking-tight">Ideal customer profile</h1>
-          <p className="text-[12px] text-neutral-500">
+          <h1 className="k-title">Ideal <span className="k-accent">customer</span> profile</h1>
+          <p className="k-sub">
             Every field carries a confidence score and the sources it came from. Hover a source to see the quote.
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-wide text-neutral-500">Mean confidence</div>
-            <div className="font-serif text-[22px] tabular-nums">{avg.toFixed(2)}</div>
+            <div className="text-[11px] tracking-wide text-neutral-500">Mean confidence</div>
+            <div className="font-mono text-[22px] tabular-nums">{avg.toFixed(2)}</div>
           </div>
           <Link
             href="/discovery"
-            className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-2 text-[13px] font-medium text-white hover:bg-neutral-800"
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
           >
             Find accounts <ArrowRight className="h-4 w-4" />
           </Link>
@@ -193,7 +193,7 @@ export default function ICPPage() {
                 key={x.value.type + x.value.description}
                 title={
                   <span className="flex items-center gap-2">
-                    <span className="rounded border border-neutral-200 bg-neutral-50 px-1.5 text-[10px] uppercase tracking-wide text-neutral-600">
+                    <span className="rounded border border-neutral-200 bg-neutral-50 px-1.5 text-[11px] tracking-wide text-neutral-600">
                       {TRIGGER_LABEL[x.value.type] ?? x.value.type}
                     </span>
                     {x.value.description}
@@ -210,7 +210,7 @@ export default function ICPPage() {
           <ul className="py-1.5">
             {icp.negative_signals.map((n) => (
               <li key={n} className="flex items-start gap-2 py-1.5 text-[13px] text-neutral-800">
-                <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" />
+                <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-300" />
                 {n}
               </li>
             ))}
@@ -220,7 +220,7 @@ export default function ICPPage() {
 
       <div className="mb-3 mt-10 flex items-end justify-between">
         <div>
-          <h2 className="font-serif text-[22px] tracking-tight">Expansion segments</h2>
+          <h2 className="text-[20px]">Expansion segments</h2>
           <p className="text-[12px] text-neutral-500">Adjacent markets the agents think could buy. Accept, adjust or dismiss each one.</p>
         </div>
         <span className="text-[11px] tabular-nums text-neutral-500">
@@ -235,7 +235,7 @@ export default function ICPPage() {
             key={s.id}
             style={{ "--i": 10 + i * 2 } as React.CSSProperties}
             className={clsx(
-              "wp-rise flex flex-col rounded-lg border bg-white p-4 transition-[opacity,border-color,box-shadow] duration-300",
+              "wp-rise flex flex-col rounded-lg border bg-surface p-4 transition-[opacity,border-color,box-shadow] duration-300",
               s.status === "accepted" || s.status === "adjusted"
                 ? "border-emerald-300 shadow-[0_0_0_3px_rgba(16,185,129,0.10)]"
                 : "border-neutral-200",
@@ -250,7 +250,7 @@ export default function ICPPage() {
               <ConfidenceBar value={s.confidence} />
             </div>
             <p className="mb-3 text-[13px] leading-relaxed text-neutral-700">{s.rationale}</p>
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-neutral-500">Evidence</div>
+            <div className="mb-1 text-[11px] tracking-wide text-neutral-500">Evidence</div>
             <ul className="mb-4 space-y-1.5">
               {s.sources.map((src, i) => (
                 <li key={src.url + i} className="text-[12px] leading-snug">
@@ -264,7 +264,7 @@ export default function ICPPage() {
                 onClick={() => update(s.id, "accepted")}
                 className={clsx(
                   "flex flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[12px] font-medium",
-                  s.status === "accepted" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-600 text-emerald-700 hover:bg-emerald-50",
+                  s.status === "accepted" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-600 text-emerald-300 hover:bg-emerald-50",
                 )}
               >
                 <Check className="h-3.5 w-3.5" /> Accept
@@ -277,7 +277,7 @@ export default function ICPPage() {
               </button>
               <button
                 onClick={() => update(s.id, s.status === "dismissed" ? "suggested" : "dismissed")}
-                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:border-rose-300 hover:text-rose-700"
+                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:border-rose-300 hover:text-rose-300"
               >
                 <X className="h-3.5 w-3.5" /> {s.status === "dismissed" ? "Restore" : "Dismiss"}
               </button>
@@ -301,12 +301,12 @@ export default function ICPPage() {
 function StatusTag({ status }: { status: ExpansionSegment["status"] }) {
   const tone: Record<ExpansionSegment["status"], string> = {
     suggested: "border-neutral-200 text-neutral-500",
-    accepted: "border-emerald-300 bg-emerald-50 text-emerald-700",
-    adjusted: "border-amber-300 bg-amber-50 text-amber-700",
+    accepted: "border-emerald-300 bg-emerald-50 text-emerald-300",
+    adjusted: "border-amber-300 bg-amber-50 text-amber-300",
     dismissed: "border-neutral-200 text-neutral-400",
   };
   return (
-    <span key={status} className={clsx("wp-tick shrink-0 rounded border px-1.5 text-[10px] uppercase tracking-wide", tone[status])}>
+    <span key={status} className={clsx("wp-tick shrink-0 rounded border px-1.5 text-[11px] tracking-wide", tone[status])}>
       {status}
     </span>
   );
@@ -333,14 +333,14 @@ function AdjustDialog({
   return (
     <Dialog.Root open={!!segment} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-neutral-900/20" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-white p-5 shadow-lg">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-panel p-5 shadow-lg">
           <Dialog.Title className="font-serif text-[20px] tracking-tight">Adjust segment</Dialog.Title>
           <Dialog.Description className="mb-4 text-[12px] text-neutral-500">
             Your edit is saved as “adjusted” and logged as a rep action.
           </Dialog.Description>
           <label className="mb-3 block">
-            <span className="mb-1 block text-[11px] uppercase tracking-wide text-neutral-500">Name</span>
+            <span className="mb-1 block text-[11px] tracking-wide text-neutral-500">Name</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -348,7 +348,7 @@ function AdjustDialog({
             />
           </label>
           <label className="mb-5 block">
-            <span className="mb-1 block text-[11px] uppercase tracking-wide text-neutral-500">Rationale</span>
+            <span className="mb-1 block text-[11px] tracking-wide text-neutral-500">Rationale</span>
             <textarea
               rows={4}
               value={rationale}

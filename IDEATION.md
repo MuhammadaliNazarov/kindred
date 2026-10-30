@@ -1,13 +1,13 @@
-# Warmpath ideation: merged decisions (30 Oct)
+# Kindred ideation: merged decisions (30 Oct)
 
 This file merges three reviews: product-lens, market-research and council. Read DESIGN.md first. Every item below either takes
 under 30 minutes or is marked post-hackathon. No code was changed while writing this.
 
 ## Positioning line
 
-> **Clay finds leads. Warmpath tells you why now and who introduces you, and proves every claim.**
+> **Clay finds leads. Kindred tells you why now and who can introduce you, and proves every claim.**
 
-Short version for the header and README: "Every AI SDR guesses. Warmpath shows its receipts."
+Short version for the header and README: "Every AI SDR guesses. Kindred shows its receipts."
 
 Who pays: a seed to Series A founder who still does the selling (no AE hired yet), selling B2B at a $5-50k ACV. It replaces Clay
 and Apollo seats, hunting for mutual connections by hand, and an SDR agency on retainer.
@@ -48,7 +48,7 @@ and Apollo seats, hunting for mutual connections by hand, and an SDR agency on r
 | 11x (Alice) | Fully autonomous AI SDR | Hurts deliverability, acts on bad data, high reported churn |
 | Apollo | Big database + sequences | "Inaccurate data" is the top G2 complaint |
 
-The gaps Warmpath claims:
+The gaps Kindred claims:
 - **Every claim has a source.** We drop any claim we can't verify, and a human approves before anything is sent. This answers
   11x and Apollo.
 - **Warm intro paths, with the cost per lead shown up front.** This answers Clay's and Unify's unpredictable credit costs.

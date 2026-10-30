@@ -137,10 +137,12 @@ export function OutreachQueue() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 px-6 pb-3 pt-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 px-8 pb-5 pt-8">
         <div>
-          <h1 className="font-serif text-2xl text-neutral-900">Outreach queue</h1>
-          <p className="text-[12px] text-neutral-500 tabular-nums">
+          <h1 className="k-title">
+            Outreach, <span className="k-accent">reviewed</span> before it sends
+          </h1>
+          <p className="k-sub">
             {totalPending} drafts awaiting review · {rows.length} leads · {passing.length} passing both checks
           </p>
         </div>
@@ -155,8 +157,8 @@ export function OutreachQueue() {
             </button>
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-neutral-900/30" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-neutral-200 bg-white p-5 shadow-lg">
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-neutral-200 bg-panel p-5 shadow-lg">
               <Dialog.Title className="font-serif text-lg text-neutral-900">Approve {passing.length} drafts?</Dialog.Title>
               <Dialog.Description className="mt-1.5 text-[13px] text-neutral-600">
                 Only drafts where the Reviewer and Security agents both returned <b>pass</b> are included. Each approval is logged under
@@ -186,16 +188,16 @@ export function OutreachQueue() {
       </div>
 
       {/* HITL banner */}
-      <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-6 py-2 text-[12px] text-emerald-800">
+      <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-6 py-2 text-[12px] text-emerald-300">
         <Lock className="h-3.5 w-3.5" />
-        <span className="font-semibold">Nothing is sent without human approval.</span>
-        <span className="text-emerald-700">Every touch waits here for a rep click. LinkedIn is never sent by API; copy it and send by hand.</span>
+        <span className="font-medium">Nothing is sent without human approval.</span>
+        <span className="text-emerald-300">Every touch waits here for a rep click. LinkedIn is never sent by API; copy it and send by hand.</span>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-[300px_1fr]">
         {/* Lead list */}
         <aside className="min-h-0 overflow-auto border-r border-neutral-200">
-          <div className="sticky top-0 grid grid-cols-[1fr_auto] border-b border-neutral-200 bg-white px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+          <div className="sticky top-0 grid grid-cols-[1fr_auto] border-b border-neutral-200 bg-panel px-4 py-1.5 text-[11px] font-medium tracking-wider text-neutral-500">
             <span>Lead</span>
             <span>Drafts</span>
           </div>
@@ -231,7 +233,7 @@ export function OutreachQueue() {
                   active ? "bg-neutral-100" : "hover:bg-neutral-50",
                 )}
               >
-                {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-neutral-900" aria-hidden />}
+                {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-accent" aria-hidden />}
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-medium text-neutral-900">{r.person?.name ?? r.lead.person_id}</div>
                   <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
@@ -241,8 +243,8 @@ export function OutreachQueue() {
                 </div>
                 <span
                   className={clsx(
-                    "min-w-6 rounded-sm px-1.5 text-center text-[12px] font-semibold tabular-nums",
-                    r.pending ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-400",
+                    "min-w-6 rounded-sm px-1.5 text-center text-[12px] font-medium tabular-nums",
+                    r.pending ? "bg-accent text-white" : "bg-neutral-100 text-neutral-400",
                   )}
                 >
                   {r.pending}
@@ -257,7 +259,7 @@ export function OutreachQueue() {
           {current ? (
             <>
               <div className="mb-3 flex flex-wrap items-baseline gap-2">
-                <h2 className="font-serif text-xl text-neutral-900">{current.person?.name}</h2>
+                <h2 className="text-[20px] text-neutral-950">{current.person?.name}</h2>
                 <span className="text-[13px] text-neutral-600">
                   {current.person?.title}
                   {current.company ? `, ${current.company.name}` : ""}
@@ -301,14 +303,14 @@ export function OutreachQueue() {
           {/* Session audit */}
           <div className="mt-6">
             <h3 className="mb-1.5 font-serif text-base text-neutral-900">Review log (this session)</h3>
-            <table className="w-full border border-neutral-200 bg-white text-[12px] tabular-nums">
+            <table className="w-full border border-neutral-200 bg-surface text-[12px] tabular-nums">
               <thead>
-                <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wider text-neutral-500">
-                  <th className="px-2 py-1 font-semibold">Time</th>
-                  <th className="px-2 py-1 font-semibold">Actor</th>
-                  <th className="px-2 py-1 font-semibold">Action</th>
-                  <th className="px-2 py-1 font-semibold">Lead</th>
-                  <th className="px-2 py-1 font-semibold">Detail</th>
+                <tr className="border-b border-neutral-200 text-left text-[11px] tracking-wider text-neutral-500">
+                  <th className="px-2 py-1 font-medium">Time</th>
+                  <th className="px-2 py-1 font-medium">Actor</th>
+                  <th className="px-2 py-1 font-medium">Action</th>
+                  <th className="px-2 py-1 font-medium">Lead</th>
+                  <th className="px-2 py-1 font-medium">Detail</th>
                 </tr>
               </thead>
               <tbody>

@@ -183,10 +183,12 @@ export default function IntakePage() {
     <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       {/* Chat */}
       <section className="flex min-h-0 flex-col border-r border-neutral-200">
-        <header className="flex items-end justify-between border-b border-neutral-200 px-6 py-4">
+        <header className="flex items-end justify-between gap-4 border-b border-neutral-200 px-8 pb-6 pt-8">
           <div>
-            <h1 className="font-serif text-[26px] leading-tight tracking-tight">Tell us what you sell</h1>
-            <p className="text-[12px] text-neutral-500">The agent asks for what is missing and fills the form as you answer.</p>
+            <h1 className="k-hero">
+              Tell us what you <span className="k-accent">sell</span>
+            </h1>
+            <p className="k-sub">The agent asks for what is missing and fills the form as you answer.</p>
           </div>
           <button
             onClick={runDemo}
@@ -202,7 +204,7 @@ export default function IntakePage() {
               <div
                 className={clsx(
                   "max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-relaxed",
-                  m.role === "user" ? "bg-neutral-900 text-white" : "border border-neutral-200 bg-white text-neutral-800",
+                  m.role === "user" ? "bg-accent text-white" : "border border-neutral-200 bg-surface text-neutral-800",
                 )}
               >
                 {m.text}
@@ -234,7 +236,7 @@ export default function IntakePage() {
               placeholder={pending ? "Type your answer…" : "All set. Edit the form or generate the ICP."}
               className="flex-1 resize-none bg-transparent text-[13px] outline-none placeholder:text-neutral-400"
             />
-            <button type="submit" disabled={!input.trim() || !pending} className="rounded-md bg-neutral-900 p-1.5 text-white disabled:opacity-30" aria-label="Send">
+            <button type="submit" disabled={!input.trim() || !pending} className="rounded-md bg-accent p-1.5 text-white disabled:opacity-30" aria-label="Send">
               <ArrowUp className="h-4 w-4" />
             </button>
           </div>
@@ -245,7 +247,7 @@ export default function IntakePage() {
       <section className="flex min-h-0 flex-col">
         <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
           <div>
-            <h2 className="font-serif text-[20px] tracking-tight">Intake</h2>
+            <h2 className="text-[20px]">Intake</h2>
             <p className="text-[12px] tabular-nums text-neutral-500">
               {5 - missing.length} of 5 sections complete
             </p>
@@ -324,7 +326,7 @@ function Field({ label, value, onChange, area, mono }: { label: string; value: s
   );
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] uppercase tracking-wide text-neutral-500">{label}</span>
+      <span className="mb-1 block text-[11px] tracking-wide text-neutral-500">{label}</span>
       {area ? (
         <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)} className={clsx(cls, "resize-none")} />
       ) : (
