@@ -47,7 +47,7 @@ def health():
         "ok": True,
         "modes": {
             "llm": llm.mode(),
-            "search": "tavily" if os.getenv("TAVILY_API_KEY") else "serper" if os.getenv("SERPER_API_KEY") else "seed",
+            "search": "tavily" if os.getenv("TAVILY_API_KEY") else "tavily-keyless" if discovery.tavily_keyless() else "serper" if os.getenv("SERPER_API_KEY") else "seed",
             "enrichment": "hunter" if os.getenv("HUNTER_API_KEY") else "apollo" if os.getenv("APOLLO_API_KEY") else "seed",
             "email": "sendgrid" if all(os.getenv(k) for k in ("SENDGRID_API_KEY", "SENDGRID_FROM", "DEMO_INBOX")) else "simulated",
             "billing": "flexprice" if billing.live() else "local_ledger",

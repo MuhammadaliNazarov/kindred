@@ -20,12 +20,13 @@ TODAY = date.today
 # ---------------- search ----------------
 def search(query: str, n: int = 6) -> list[dict]:
     """Returns [{title,url,content}] from Tavily, else Serper, else []."""
-    if os.getenv("TAVILY_API_KEY"):
+    if os.getenv("TAVILY_API_KEY") or tavily_keyless():
         try:
-            thinking.emit("discovery", "search", f"Tavily: {query}")
+            key = os.getenv("TAVILY_API_KEY")
+            thinking.emit("discovery", "search", f"Tavily{'' if key else ' (keyless)'}: {query}")
             r = httpx.post(
                 "https://api.tavily.com/search",
-                headers={"Authorization": f"Bearer {os.environ['TAVILY_API_KEY']}"},
+                headers={"Authorization": f"Bearer {key}"} if key else {"X-Tavily-Access-Mode": "keyless"},
                 json={"query": query, "max_results": n, "search_depth": "basic", "topic": "general"},
                 timeout=20,
             )
@@ -44,8 +45,13 @@ def search(query: str, n: int = 6) -> list[dict]:
     return []
 
 
+def tavily_keyless() -> bool:
+    """Tavily Search works without a key in keyless mode (rate-limited). On by default; TAVILY_KEYLESS=0 turns it off."""
+    return os.getenv("TAVILY_KEYLESS", "1") != "0"
+
+
 def live() -> bool:
-    return bool(os.getenv("TAVILY_API_KEY") or os.getenv("SERPER_API_KEY"))
+    return bool(os.getenv("TAVILY_API_KEY") or tavily_keyless() or os.getenv("SERPER_API_KEY"))
 
 
 def _first_sentence(text: str) -> str:
