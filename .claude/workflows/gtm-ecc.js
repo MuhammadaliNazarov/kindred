@@ -1,6 +1,6 @@
 export const meta = {
   name: 'gtm-ecc',
-  description: 'Warmpath hackathon pipeline driven by ECC skills: ideate, review, QA, delivery gate (pick with args.stage)',
+  description: 'Kindred hackathon pipeline driven by ECC skills: ideate, review, QA, delivery gate (pick with args.stage)',
   whenToUse: 'args: {stage: "ideate" | "review" | "qa" | "gate" | "all"}',
   phases: [
     { title: 'Ideate', detail: 'ecc:product-lens, ecc:market-research, ecc:council' },
@@ -23,12 +23,12 @@ let out = {}
 if (run('ideate')) {
   phase('Ideate')
   const [lens, market, story] = await parallel([
-    () => agent(`${useSkill(['ecc:product-lens'])}\n${ctx}\nApply product-lens to Warmpath: is the wedge (cited evidence + warm intro paths + per-lead cost) a believable startup? ` +
+    () => agent(`${useSkill(['ecc:product-lens'])}\n${ctx}\nApply product-lens to Kindred: is the wedge (cited evidence + warm intro paths + per-lead cost) a believable startup? ` +
       `Who pays, what they replace, why now. Give the 3 sharpest changes to the pitch and the 1 feature to cut. Return markdown under 300 words.`,
       { label: 'product-lens', phase: 'Ideate' }),
     () => agent(`${useSkill(['ecc:market-research'])}\n${ctx}\nResearch (web) how Clay, Unify, Origami Agents, Rox, 11x and Apollo AI position and price ` +
       `their GTM agents in 2026, and what users complain about (Reddit, X, G2). Return a markdown table (product, wedge, price, top complaint) ` +
-      `and the 2 gaps Warmpath should claim, with source URLs. Under 350 words.`,
+      `and the 2 gaps Kindred should claim, with source URLs. Under 350 words.`,
       { label: 'market-research', phase: 'Ideate' }),
     () => agent(`${useSkill(['ecc:council'])}\n${ctx}\nRun a council of 3 judges (sponsor judge for Band/Flexprice, a VC, a GTM practitioner). ` +
       `Each scores the planned 2–3 minute demo story (DESIGN section 3) against the judging matrix and names the single moment that would win or lose ` +

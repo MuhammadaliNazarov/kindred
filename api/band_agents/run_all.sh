@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start all four WarmPath Band agents (Planner, Builder, Reviewer, Security) in one process.
+# Start all four Kindred Band agents (Planner, Builder, Reviewer, Security) in one process.
 # Usage: ./run_all.sh            (live, needs .env with Band + Anthropic keys)
 #        ./run_all.sh --dry-run  (local simulation, no keys)
 set -euo pipefail

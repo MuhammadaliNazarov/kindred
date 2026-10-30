@@ -1,9 +1,9 @@
-# Warmpath learning loop (RL)
+# Kindred learning loop (RL)
 
 Two pieces, both wired into the live app and runnable offline.
 
 ## 1. Reply-learning outreach (Thompson-sampling bandit) — live in the app
-- `app/bandit.py`: arms = hook × CTA (`signal_hook__call`, `signal_hook__doc`, `warmpath_hook__call`, `warmpath_hook__doc`),
+- `app/bandit.py`: arms = hook × CTA (`signal_hook__call`, `signal_hook__doc`, `warmintro_hook__call`, `warmintro_hook__doc`),
   each Beta(replies+1, no_replies+1), persisted to `data/bandit.json` (delete it to reset).
 - Drafting (`outreach.draft`) picks the arm with `bandit.choose()` and stores it on each Touch (`arm`).
 - Reward: lead moved to `replied`/`meeting`/`closed_won` or `POST /webhooks/reply {lead_id}` → 1;

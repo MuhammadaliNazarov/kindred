@@ -1,4 +1,4 @@
-"""CPU-only GRPO (TRL) + LoRA on Warmpath outreach prompts. Reward = app.verifier.score (normalised 0-1),
+"""CPU-only GRPO (TRL) + LoRA on Kindred outreach prompts. Reward = app.verifier.score (normalised 0-1),
 the SAME function as the HITL Reviewer gate. No GPU, no vLLM, fp32.
 
     cd api/rl && uv sync

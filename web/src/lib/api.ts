@@ -409,11 +409,11 @@ export const verifyText = (text: string, company: string, signal: string) =>
 const ARMS = [
   { id: "signal_hook__call", hook: "signal_hook", cta: "call", hook_text: "Lead with the cited signal", cta_text: "Worth a 15-min call this week?" },
   { id: "signal_hook__doc", hook: "signal_hook", cta: "doc", hook_text: "Lead with the cited signal", cta_text: "Want the one-page agent-sandbox architecture doc?" },
-  { id: "warmpath_hook__call", hook: "warmpath_hook", cta: "call", hook_text: "Lead with the warm-path connector", cta_text: "Worth a 15-min call this week?" },
-  { id: "warmpath_hook__doc", hook: "warmpath_hook", cta: "doc", hook_text: "Lead with the warm-path connector", cta_text: "Want the one-page agent-sandbox architecture doc?" },
+  { id: "warmintro_hook__call", hook: "warmintro_hook", cta: "call", hook_text: "Lead with the warm-path connector", cta_text: "Worth a 15-min call this week?" },
+  { id: "warmintro_hook__doc", hook: "warmintro_hook", cta: "doc", hook_text: "Lead with the warm-path connector", cta_text: "Want the one-page agent-sandbox architecture doc?" },
 ];
 // SIMULATED true reply rates (demo only) — mirrors api/app/bandit.py.
-const SIM_RATES: Record<string, number> = { signal_hook__call: 0.04, signal_hook__doc: 0.07, warmpath_hook__call: 0.06, warmpath_hook__doc: 0.11 };
+const SIM_RATES: Record<string, number> = { signal_hook__call: 0.04, signal_hook__doc: 0.07, warmintro_hook__call: 0.06, warmintro_hook__doc: 0.11 };
 
 function mulberry(seed: number) {
   let a = seed >>> 0;

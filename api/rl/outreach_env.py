@@ -1,4 +1,4 @@
-"""OpenEnv-style (Gym API) single-step RL environment for Warmpath outreach.
+"""OpenEnv-style (Gym API) single-step RL environment for Kindred outreach.
 
     env = OutreachEnv(tasks)            # tasks = real discovered leads (via the API) or FALLBACK_TASKS
     obs = env.reset(seed=0)             # {company, buyer_role, signal, quote, allowed_links, instructions, ...}
@@ -98,7 +98,7 @@ def score_draft(task: dict, draft: str) -> tuple[float, float, list[dict]]:
     return normalise(v["score"]), v["score"], v["checks"]
 
 
-def split_of(task: dict, eval_frac: float = 0.4, salt: str = "warmpath-v1") -> str:
+def split_of(task: dict, eval_frac: float = 0.4, salt: str = "kindred-v1") -> str:
     """Fixed, seed-free GROUP split by company (no company appears in both train and eval)."""
     h = int(hashlib.sha1(f"{salt}:{task['company'].lower()}".encode()).hexdigest(), 16) % 1000
     return "eval" if h < eval_frac * 1000 else "train"

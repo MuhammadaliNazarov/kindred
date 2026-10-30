@@ -127,7 +127,7 @@ uv sync
 ./run_all.sh --dry-run   # no keys: scripted handoffs against localhost:8000 or an in-process stub
 ```
 
-Create remote agents named exactly `Planner`, `Builder`, `Reviewer`, `Security`, add them and yourself to a room `warmpath-demo`, then paste: `@Planner Find 10 Tier-A buyers for Tenki and draft outreach`.
+Create remote agents named exactly `Planner`, `Builder`, `Reviewer`, `Security`, add them and yourself to a room `kindred-demo`, then paste: `@Planner Find 10 Tier-A buyers for Tenki and draft outreach`.
 
 | Variable | What it does |
 |---|---|
@@ -135,7 +135,7 @@ Create remote agents named exactly `Planner`, `Builder`, `Reviewer`, `Security`,
 | `BAND_LLM` | `claude_sdk` (default when `ANTHROPIC_API_KEY` is empty: Claude Agent SDK → `claude` CLI, subscription) or `anthropic` (API key). |
 | `CLAUDE_SDK_MODEL` / `CLAUDE_MODEL` | Model per backend (`sonnet` / `claude-sonnet-5-5`). |
 | `PRICE_IN`, `PRICE_OUT` | $/1M tokens for the cost line each agent posts. |
-| `WARMPATH_API` | Backend URL (default `http://localhost:8000`). |
+| `KINDRED_API` | Backend URL (default `http://localhost:8000`). |
 
 Full details: [api/band_agents/README.md](api/band_agents/README.md).
 
@@ -156,7 +156,7 @@ GRPO training (`--model Qwen/Qwen2.5-0.5B-Instruct --steps 200`) needs one GPU a
 | **Band** | `api/band_agents/agents.py` | Four `band-sdk` remote agents (Planner, Builder, Reviewer, Security) in one room with the human. Each has an allow-list of API routes (`ALLOWED[role]`); `/touches/{id}/send` and anything schema-shaped are in `FORBIDDEN` for every agent. `approvetouches` only works when the **latest message from a non-agent participant** contains `approve` (`require_human_approval`), recorded by the adapter's `on_turn`, never asserted by the model. Each turn emits `Emit.USAGE` and posts a `usage · role: N in / M out · ≈$` line. Backend: `ClaudeSDKAdapter` (subscription) or `AnthropicAdapter` (API key). |
 | **Flexprice** | `api/app/billing.py` | Three metered events: `lead_enriched` (5 credits), `outreach_sent` (1), `graph_query` (0.1). Live: `POST {base}/events` per event (`x-api-key`, `external_customer_id`) and `GET {base}/customers/wallets?lookup_key=…&include_real_time_balance=true` for the balance (5 s cache). `billing.check()` raises **HTTP 402** `out_of_credits` before enrichment or a send; the thinking feed shows "Enrichment paused — out of credits". The local ledger always runs too, so the gate holds even if the wallet lags. |
 | **Snyk** | `.github/workflows/snyk.yml` | On every push/PR: Snyk Code (SAST, SARIF uploaded to GitHub code scanning), Snyk Open Source on `web/` (fails on high severity) and on `api/pyproject.toml`. Needs repo secret `SNYK_TOKEN`. |
-| **Tenki** | `deploy.sh`, two sandboxes `warmpath` (web) and `warmpath-api` | Both services run in Tenki sandboxes; the public demo is a Tenki preview URL. Tenki is also the demo *product* being sold: the seed intake, ICP and copy are about tenki.cloud. |
+| **Tenki** | `deploy.sh`, two sandboxes `kindred-web` (web) and `kindred-backend` | Both services run in Tenki sandboxes; the public demo is a Tenki preview URL. Tenki is also the demo *product* being sold: the seed intake, ICP and copy are about tenki.cloud. |
 | **Tavily** | `api/app/discovery.py`, `api/app/validator.py`, `api/app/icp.py` | **Search** (`/search`, `exclude_domains` for aggregators, `include_domains` for ATS/news, `topic=news`, `time_range=month`) finds job posts, funding and launches that match the ICP, and 1–2 evidence sources per ICP field and expansion segment (≤20 searches, cached in `data/cache/`). **Extract** (`/extract`) is the validator's second opinion when a direct fetch fails or the page is JS-rendered. Works with `TAVILY_API_KEY` or in keyless mode; last good results per query are cached in `data/search_cache.json` and re-validated on every run. |
 | **Claude** (Anthropic) | `api/app/llm.py` | ICP + expansion segments (`icp.py`), claim extraction from search results with verbatim quotes (`discovery.py`), 3-touch copy (`outreach.py`). JSON-only calls; every call has a deterministic fallback. |
 
@@ -189,8 +189,8 @@ Other services: **Hunter.io** (email-finder / domain-search + email-verifier wit
 
 `deploy.sh` tars each service (excluding `node_modules`, `.next`, `.venv`, `data`, `.env`), base64-writes it into the Tenki sandbox with `tenki sandbox write`, then `tenki sandbox exec`:
 
-- **web** (session `warmpath`): `npm ci`, `NEXT_PUBLIC_API_URL=https://kindred-api--u6faat.us.sb.tenki.sh npm run build`, restart `next start -p 3000 -H 0.0.0.0` detached, curl `/intake`.
-- **api** (session `warmpath-api`): `uv sync`, source `~/gtm/api/.env` in the sandbox (secrets live there, never in git), restart `uvicorn app.main:app --port 8000` with `CORS_ORIGIN_REGEX` for `*.us.sb.tenki.sh`, curl `/health`.
+- **web** (session `kindred-web`): `npm ci`, `NEXT_PUBLIC_API_URL=https://kindred-api--u6faat.us.sb.tenki.sh npm run build`, restart `next start -p 3000 -H 0.0.0.0` detached, curl `/intake`.
+- **api** (session `kindred-backend`): `uv sync`, source `~/gtm/api/.env` in the sandbox (secrets live there, never in git), restart `uvicorn app.main:app --port 8000` with `CORS_ORIGIN_REGEX` for `*.us.sb.tenki.sh`, curl `/health`.
 
 Needs the `tenki` CLI at `~/.local/bin/tenki` and the two sandbox sessions already created. Before recording: `curl -X POST https://kindred-api--u6faat.us.sb.tenki.sh/reset`.
 

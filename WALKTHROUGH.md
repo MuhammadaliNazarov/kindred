@@ -1,6 +1,6 @@
 # Kindred: your walkthrough + 2:30 video script
 
-**App:** https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · **Code:** https://github.com/AliNazaarov/warmpath
+**App:** https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · **Code:** https://github.com/MuhammadaliNazarov/kindred
 **Event:** Post-Training & RL Buildathon. The judges care most about how a model or agent got better through training.
 
 ## 1. Kindred in one breath
@@ -66,7 +66,7 @@ run was on the laptop CPU. Tenki hosts the app, the API and the RL environment.
 ## 4. Before you record (5 min)
 
 1. Open the app in Chrome at full width (1440 px or more).
-2. Open app.band.ai in a second window: the `warmpath-demo` room with Planner, Builder, Reviewer and Security.
+2. Open app.band.ai in a second window: the `kindred-demo` room with Planner, Builder, Reviewer and Security.
 3. Practise one run without recording. Drag one Kanban card by hand.
 4. Don't enrich a company with no website (the grid shows it as "—").
 

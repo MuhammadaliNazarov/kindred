@@ -1,4 +1,4 @@
-"""CLI: run the Warmpath Thompson-sampling bandit with SIMULATED replies (offline, no API needed).
+"""CLI: run the Kindred Thompson-sampling bandit with SIMULATED replies (offline, no API needed).
 
     cd api && uv run python rl/bandit_sim.py --sends 300 --seed 0
 Prints per-arm sent/replies/mean/share and the share history. Does not touch data/bandit.json.

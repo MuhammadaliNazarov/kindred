@@ -1,7 +1,7 @@
 [project]
-name = "warmpath-rl"
+name = "kindred-rl"
 version = "0.1.0"
-description = "CPU-only GRPO/DPO post-training + eval for Warmpath outreach (reward = app.verifier.score)"
+description = "CPU-only GRPO/DPO post-training + eval for Kindred outreach (reward = app.verifier.score)"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.4",

@@ -1,6 +1,6 @@
 """Optional post-training: GRPO-tune a small model to write compliant, signal-grounded outreach for Tenki.
 
-The reward is app.verifier.score: the SAME rule-based verifier the Reviewer agent applies in Warmpath's HITL gate
+The reward is app.verifier.score: the SAME rule-based verifier the Reviewer agent applies in Kindred's HITL gate
 (company named, cited signal, question CTA, 30-90 words, claims sourced, no outcome guarantees, allowed links only).
 So "the HITL verifier is the GRPO reward" is literally true.
 
@@ -45,7 +45,7 @@ def check():
     g, b = score(good, co, sig, allowed_domains=[PRODUCT_DOMAIN]), score(bad, co, sig, allowed_domains=[PRODUCT_DOMAIN])
     print("good:", g, "\nbad: ", b)
     assert g > b
-    print("reward check OK (same function as the Warmpath Reviewer gate)")
+    print("reward check OK (same function as the Kindred Reviewer gate)")
 
 
 def train(model_name, steps):

@@ -15,7 +15,7 @@ from . import thinking
 
 HOOKS = {
     "signal_hook": "Lead with the cited signal (what happened, when)",
-    "warmpath_hook": "Lead with the warm-path connector (shared ex-employer)",
+    "warmintro_hook": "Lead with the warm-path connector (shared ex-employer)",
 }
 CTAS = {
     "call": "Worth a 15-min call this week?",
@@ -23,7 +23,7 @@ CTAS = {
 }
 ARMS = [f"{h}__{c}" for h in HOOKS for c in CTAS]
 # SIMULATED true reply rates for the demo only (never used for real rewards).
-SIM_TRUE_RATES = {"signal_hook__call": 0.04, "signal_hook__doc": 0.07, "warmpath_hook__call": 0.06, "warmpath_hook__doc": 0.11}
+SIM_TRUE_RATES = {"signal_hook__call": 0.04, "signal_hook__doc": 0.07, "warmintro_hook__call": 0.06, "warmintro_hook__doc": 0.11}
 
 PATH = Path(__file__).resolve().parent.parent / "data" / "bandit.json"
 _lock = threading.RLock()

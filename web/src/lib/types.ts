@@ -104,7 +104,7 @@ export type Touch = {
   body: string;
   signal_id: string;
   variant: "A" | "B";
-  arm?: string; // bandit arm id, e.g. "warmpath_hook__doc"
+  arm?: string; // bandit arm id, e.g. "warmintro_hook__doc"
   status: "draft" | "approved" | "edited" | "rejected" | "sent";
   review: {
     verdict: "pass" | "fix" | "fail";

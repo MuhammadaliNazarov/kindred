@@ -14,7 +14,7 @@ from fastapi import HTTPException
 from . import bandit, billing, graph, llm, pipeline, state, thinking, verifier
 from .models import Review, Security, Touch
 
-log = logging.getLogger("warmpath.outreach")
+log = logging.getLogger("kindred.outreach")
 
 PERSONA_RULES = {
     "c-level": "Lead with business outcome and speed; max 90 words; no jargon.",
@@ -68,12 +68,12 @@ def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | N
         s1 = f"{co.name}: {summ}"
     else:
         s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
-    hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmpath_hook", "call")
+    hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmintro_hook", "call")
     cta_line = bandit.CTAS.get(cta, "Worth a short look?")
     congrats = _congrats(co, sig)
-    body1 = (f"Hi {_first(person.name)},\n\n{congrats} {warm if hook == 'warmpath_hook' else ''}{sig_line}\n\n"
+    body1 = (f"Hi {_first(person.name)},\n\n{congrats} {warm if hook == 'warmintro_hook' else ''}{sig_line}\n\n"
              f"A {sig.type.replace('_', ' ')} like that usually means someone has to build and run sandbox infra for agent code. {product} ({product_url}) gives you that as an API, "
-             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmpath_hook' else ''}{cta_line}\n\n{SIGNATURE}")
+             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmintro_hook' else ''}{cta_line}\n\n{SIGNATURE}")
     body2 = (f"Hi {_first(person.name)},\n\n{congrats} Following up on the {sig.type.replace('_', ' ')} from {sig.date}: "
              f"if the sandbox work is already scoped, I can share how {product} would fit. Would a short plan help?\n\n{SIGNATURE}")
     body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
@@ -179,7 +179,7 @@ def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
     state_warm[lead.id] = hops
     arm = bandit.choose()
     hook, cta = bandit.split(arm)
-    if hook == "warmpath_hook" and not hops:
+    if hook == "warmintro_hook" and not hops:
         arm, hook = f"signal_hook__{cta}", "signal_hook"  # no warm path to lead with
     lead.variant = "A" if hook == "signal_hook" else "B"
     pol = bandit.policy()

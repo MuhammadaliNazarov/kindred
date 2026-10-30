@@ -19,7 +19,7 @@ _cache: dict[str, str | None] = {}
 _xcache: dict[str, str | None] = {}  # Tavily-extract text per URL (JS-rendered job boards, bot-blocked pages)
 _CACHE_MAX = 512
 _MAX_BYTES = 2_000_000
-UA = {"User-Agent": "Mozilla/5.0 (Warmpath quote validator; +https://example.com)"}
+UA = {"User-Agent": "Mozilla/5.0 (Kindred quote validator; +https://example.com)"}
 
 
 def norm(s: str) -> str:

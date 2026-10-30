@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = Path(__file__).resolve().parent / "kindred-outreach"
-API = "https://warmpath-api--u6faat.us.sb.tenki.sh"
+API = "https://kindred-api--u6faat.us.sb.tenki.sh"
 PROMPTS = ROOT / "api" / "rl" / "out" / "prompts.jsonl"
 VERIFIER_SRC = ROOT / "api" / "app" / "verifier.py"
 

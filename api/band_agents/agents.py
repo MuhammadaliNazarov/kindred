@@ -1,6 +1,6 @@
-"""WarmPath Band room: Planner -> Builder -> Reviewer -> Security -> HUMAN.
+"""Kindred Band room: Planner -> Builder -> Reviewer -> Security -> HUMAN.
 
-Four Band remote agents (band-sdk) that drive the WarmPath FastAPI
+Four Band remote agents (band-sdk) that drive the Kindred FastAPI
 backend through a small, allow-listed set of tools, with a hard-coded
 human-in-the-loop gate: nothing is sent and no schema changes without a human
 typing "approve" in the room.
@@ -32,7 +32,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-WARMPATH_API = os.environ.get("WARMPATH_API", "http://localhost:8000").rstrip("/")
+KINDRED_API = os.environ.get("KINDRED_API", "http://localhost:8000").rstrip("/")
 # DESIGN.md §6 names Claude Sonnet 5.5 for the agents; override with CLAUDE_MODEL.
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5-5")
 # $ per 1M tokens (Sonnet 5.5: $2 in / $10 out) for the cost line each agent posts.
@@ -113,7 +113,7 @@ async def api(agent: str, method: str, path: str, body: dict | None = None, *, p
         raise HITLError(f"{agent} may not call {method} {path}")
     if re.match(r"^/touches/[^/]+/review$", path) and (body or {}).get("action") == "approve" and not approved_by:
         raise HITLError("review/approve requires require_human_approval() first")  # belt and braces
-    async with httpx.AsyncClient(base_url=WARMPATH_API, timeout=120, transport=_transport) as c:
+    async with httpx.AsyncClient(base_url=KINDRED_API, timeout=120, transport=_transport) as c:
         r = await c.request(method, path, json=body, params=params)
     try:
         data = r.json()
@@ -248,7 +248,7 @@ async def audit() -> str:
 # --------------------------------------------------------------------------
 # Agent specs
 # --------------------------------------------------------------------------
-COMMON = """You are one of four WarmPath agents in a Band room with a human founder.
+COMMON = """You are one of four Kindred agents in a Band room with a human founder.
 Rules (code-enforced, but obey them too): never send mail, never change the graph schema;
 only a human typing 'approve' authorises sending. Keep posts short (bullets, <120 words).
 Hand off with an @mention of the next agent by name. Every prospect claim must cite its source URL.
@@ -317,7 +317,7 @@ def build_adapter(role: str):
         config = AnthropicAdapterConfig(model=CLAUDE_MODEL, custom_section=SPECS[role]["prompt"], max_tokens=4096)
         model_label = CLAUDE_MODEL
 
-    class WarmPathAdapter(Base):
+    class KindredAdapter(Base):
         """LLM adapter + human-message ledger (HITL) + a visible cost line per turn."""
 
         async def on_turn(self, messages, tools, history, participants_msg, contacts_msg, *, is_session_bootstrap, room_id):
@@ -344,7 +344,7 @@ def build_adapter(role: str):
             except Exception:
                 pass
 
-    return WarmPathAdapter(config, additional_tools=SPECS[role]["tools"], emit=Emit.TOOL_CALLS | Emit.USAGE)
+    return KindredAdapter(config, additional_tools=SPECS[role]["tools"], emit=Emit.TOOL_CALLS | Emit.USAGE)
 
 
 async def run_live(roles: list[str]) -> None:
@@ -356,7 +356,7 @@ async def run_live(roles: list[str]) -> None:
         if not aid or not key:
             sys.exit(f"Missing {role.upper()}_AGENT_ID / {role.upper()}_API_KEY in .env")
         agents.append(Agent.create(adapter=build_adapter(role), agent_id=aid, api_key=key))
-    print(f"[band] running {', '.join(roles)} against {WARMPATH_API} with BAND_LLM={BAND_LLM} ({CLAUDE_SDK_MODEL if BAND_LLM == 'claude_sdk' else CLAUDE_MODEL})")
+    print(f"[band] running {', '.join(roles)} against {KINDRED_API} with BAND_LLM={BAND_LLM} ({CLAUDE_SDK_MODEL if BAND_LLM == 'claude_sdk' else CLAUDE_MODEL})")
     await asyncio.gather(*(a.run() for a in agents))
 
 
@@ -364,7 +364,7 @@ async def run_live(roles: list[str]) -> None:
 # Dry run: same handlers, scripted handoffs, no Band or Anthropic keys.
 # --------------------------------------------------------------------------
 def _stub_transport() -> httpx.MockTransport:
-    """In-process stand-in for the WarmPath API when localhost:8000 is down."""
+    """In-process stand-in for the Kindred API when localhost:8000 is down."""
     names = ["Cognition", "Factory", "Sierra", "Decagon", "Harvey", "Hebbia", "Imbue", "Reflection", "Magic", "Poolside"]
     companies = {f"co_{n}": {"id": f"co_{n}", "name": c, "domain": f"{c.lower()}.ai", "tier": "A" if n <= 8 else "B", "score": 90 - n,
                              "signals": [{"type": "job_post", "summary": "Hiring Senior Infrastructure Engineer", "date": "2026-10-27",
@@ -432,13 +432,13 @@ async def run_dry(out_of_credits: bool = False) -> None:
     CURRENT_ROOM.set(room)
     up = False
     try:
-        async with httpx.AsyncClient(base_url=WARMPATH_API, timeout=2) as c:
+        async with httpx.AsyncClient(base_url=KINDRED_API, timeout=2) as c:
             up = (await c.get("/health")).status_code == 200
     except Exception:
         pass
     if not up:
         _transport = _stub_transport()
-    print(f"=== WarmPath Band room (dry run) · backend: {'LIVE ' + WARMPATH_API if up else 'STUB (localhost:8000 is down)'} ===")
+    print(f"=== Kindred Band room (dry run) · backend: {'LIVE ' + KINDRED_API if up else 'STUB (localhost:8000 is down)'} ===")
 
     _say("Human", DEMO_PROMPT + " @Planner")
     record_human_message(room, "ali", DEMO_PROMPT)
@@ -464,7 +464,7 @@ async def run_dry(out_of_credits: bool = False) -> None:
     for i, lid in enumerate(lead_ids):
         if out_of_credits and i == 3 and not up:
             # burn the stub wallet to show the Flexprice gate
-            async with httpx.AsyncClient(base_url=WARMPATH_API, transport=_transport) as c:
+            async with httpx.AsyncClient(base_url=KINDRED_API, transport=_transport) as c:
                 for _ in range(20):
                     await c.post("/leads/x/enrich")
         e = await enrich(EnrichInput(lead_id=lid))

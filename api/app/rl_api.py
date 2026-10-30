@@ -153,7 +153,7 @@ def preference_stats():
 def export_preferences():
     body = "".join(json.dumps({k: p[k] for k in ("prompt", "chosen", "rejected", "source")}) + "\n" for p in _pairs())
     return Response(body, media_type="application/x-ndjson",
-                    headers={"Content-Disposition": 'attachment; filename="warmpath_preferences.jsonl"'})
+                    headers={"Content-Disposition": 'attachment; filename="kindred_preferences.jsonl"'})
 
 
 # ---------- RL environment over HTTP ----------

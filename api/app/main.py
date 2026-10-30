@@ -1,4 +1,4 @@
-"""Warmpath API. Run: uv run uvicorn app.main:app --reload --port 8000"""
+"""Kindred API. Run: uv run uvicorn app.main:app --reload --port 8000"""
 from __future__ import annotations
 
 import os
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Warmpath API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Kindred API", version="0.1.0", lifespan=lifespan)
 origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "http://localhost:3000").split(",") if o.strip()]
 app.include_router(rl_api.router, tags=["rl"])  # /preferences, /export/preferences, /env/*, /model/*
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,

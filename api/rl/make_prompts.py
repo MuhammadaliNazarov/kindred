@@ -1,4 +1,4 @@
-"""Pull real discovered leads from a running Warmpath API and write rl/out/prompts.jsonl (one task per lead).
+"""Pull real discovered leads from a running Kindred API and write rl/out/prompts.jsonl (one task per lead).
 
     cd api/rl && uv run python make_prompts.py --api http://localhost:8040
 The train/eval split is fixed by company hash inside outreach_env.build_pool, so re-running never leaks eval into train.

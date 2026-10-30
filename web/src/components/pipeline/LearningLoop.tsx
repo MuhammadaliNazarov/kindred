@@ -11,10 +11,10 @@ import { Badge, uid } from "@/components/outreach/bits";
 const COLORS: Record<string, string> = {
   signal_hook__call: "#2f5bff",
   signal_hook__doc: "#0ea5e9",
-  warmpath_hook__call: "#f59e0b",
-  warmpath_hook__doc: "#10b981",
+  warmintro_hook__call: "#f59e0b",
+  warmintro_hook__doc: "#10b981",
 };
-const label = (id: string) => id.replace("_hook__", " hook · ").replace("warmpath", "warm-path").replace(/call$/, "call CTA").replace(/doc$/, "doc CTA");
+const label = (id: string) => id.replace("_hook__", " hook · ").replace("warmintro", "warm intro").replace(/call$/, "call CTA").replace(/doc$/, "doc CTA");
 const pct = (v: number) => `${(v * 100).toFixed(v > 0 && v < 0.1 ? 1 : 0)}%`;
 
 function Bar({ value, color }: { value: number; color: string }) {

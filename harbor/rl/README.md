@@ -9,7 +9,7 @@ verifier, normalised to [0,1]); the per-check keys are logged as metrics.
 - `TINKER_API_KEY` exported, **with Tinker billing active** (otherwise sampling/training calls are refused).
 - A sandbox backend for the task containers: local **Docker** (with the `docker compose` plugin) or a Harbor
   remote env (`--sandbox modal | daytona | e2b | runloop`, with that provider's API key, e.g. `MODAL_TOKEN_ID/SECRET`,
-  `DAYTONA_API_KEY`, `E2B_API_KEY`). Docker is not installed on the Mac; the Tenki sandbox `warmpath-qa` has it.
+  `DAYTONA_API_KEY`, `E2B_API_KEY`). Docker is not installed on the Mac; the Tenki sandbox `kindred-harbor` has it.
 - `uv` (the script pins its deps inline: harbor `feature/harbor-rl-4d0` branch + `tinker-cookbook`).
 
 ## Commands (from the repo root)

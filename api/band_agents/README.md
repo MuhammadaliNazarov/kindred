@@ -1,6 +1,6 @@
-# WarmPath Band room — Planner · Builder · Reviewer · Security · you
+# Kindred Band room — Planner · Builder · Reviewer · Security · you
 
-Four Band remote agents collaborate in one room with a human. They drive the WarmPath API
+Four Band remote agents collaborate in one room with a human. They drive the Kindred API
 (`api/app`) through allow-listed tools and hand off with @mentions. **Nothing is sent and no
 schema changes unless a human types `approve` in the room** — enforced in code, not prompts.
 
@@ -33,11 +33,11 @@ Every agent also posts a `usage · <role>: N in / M out tokens · ≈$x` line pe
    `Planner`, `Builder`, `Reviewer`, `Security` (the prompts @mention by these names). Copy each one's
    **Agent ID** and **API key**.
 3. **Env:** `cd api/band_agents && cp .env.example .env`, paste the 4 ID/key pairs. No `ANTHROPIC_API_KEY` needed:
-   with it empty the agents run on your Claude subscription (see *LLM backend* below). `WARMPATH_API` defaults to
+   with it empty the agents run on your Claude subscription (see *LLM backend* below). `KINDRED_API` defaults to
    `http://localhost:8000`.
 4. **Install + run:** `uv sync && ./run_all.sh` (or `uv run python agents.py planner` etc. in 4 terminals).
    Wait for four "Connected to platform" lines.
-5. **Room:** in Band create a chatroom **`warmpath-demo`**, add all four agents from the participants panel, and
+5. **Room:** in Band create a chatroom **`kindred-demo`**, add all four agents from the participants panel, and
    yourself.
 6. **Demo prompt — paste in the room:**
 
@@ -93,7 +93,7 @@ The `usage ·` line still shows a list-price ≈$ figure, marked as billed to th
 - `ALLOWED[role]` is a per-agent allow-list of (method, path); anything else raises `HITLError`.
 - `approvetouches` calls `require_human_approval(room_id)`: the **latest message in the room from a participant whose
   `sender_type != "Agent"`** must contain `approve` (and not `reject`). The adapter records those messages as they
-  arrive (`WarmPathAdapter.on_turn`); the model never gets to assert approval itself. (ClaudeSDKAdapter runs custom
+  arrive (`KindredAdapter.on_turn`); the model never gets to assert approval itself. (ClaudeSDKAdapter runs custom
   tools in its local MCP server, so the gate reads the room from `ACTIVE_ROOM`, set by `on_turn`.)
 - Review/approve only marks drafts approved; sending stays with the human in the UI.
 

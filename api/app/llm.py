@@ -139,7 +139,7 @@ def _call_cli(system: str, prompt: str) -> str:
         "--strict-mcp-config",       # no MCP servers
         "--no-session-persistence",
     ]
-    with tempfile.TemporaryDirectory(prefix="warmpath-claude-") as cwd:
+    with tempfile.TemporaryDirectory(prefix="kindred-claude-") as cwd:
         proc = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=CLI_TIMEOUT, stdin=subprocess.DEVNULL)
     out = proc.stdout.strip()
     try:

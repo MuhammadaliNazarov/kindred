@@ -204,13 +204,13 @@ Four `band-sdk` remote agents with the spec's roles, each with its own tools, pr
 The HITL gate is three layers of code: (1) `FORBIDDEN` regexes block `/touches/{id}/send` and anything matching `send`/`schema`/
 graph DDL for every agent before any HTTP call; (2) `ALLOWED[role]` rejects every other route; (3) `approvetouches` calls
 `require_human_approval(room)`, which reads the **latest message from a participant whose `sender_type != "Agent"`** (recorded
-by `WarmPathAdapter.on_turn`, never by the model) and requires `approve` without `reject`. Even then it only marks touches
+by `KindredAdapter.on_turn`, never by the model) and requires `approve` without `reject`. Even then it only marks touches
 `approved`; the human sends from the UI. `emit_usage` posts tokens and ≈$ per turn (`Emit.USAGE`). The `--dry-run` path runs
 the identical handlers against the live API or an in-process stub, including the refused early-approve and refused `/send`.
 
 ### 3.4 Reply-learning bandit (`bandit.py`, `pipeline.py`)
 
-Arms = hook × CTA: `signal_hook|warmpath_hook` × `call|doc`. Each arm is `Beta(replies+1, no_replies+1)`, persisted in
+Arms = hook × CTA: `signal_hook|warmintro_hook` × `call|doc`. Each arm is `Beta(replies+1, no_replies+1)`, persisted in
 `data/bandit.json`. Drafting samples an arm (Thompson sampling) and stores it on each `Touch.arm`. Rewards are real and
 idempotent per lead: stage → `replied|meeting|closed_won` or `POST /webhooks/reply {lead_id}` ⇒ 1; `closed_lost` after a send
 with no reply ⇒ 0. `summary()` reports per-arm sent/replies/mean and the Monte-Carlo traffic share; `history` is the share over
@@ -264,8 +264,8 @@ Mutating or costly routes (`/discover`, `/enrich`, `/review`, `/send`, `/reset`,
 
 ## 5. Deployment
 
-Two Tenki sandboxes, both detached processes: `warmpath` runs `next start -p 3000` (built with the API URL baked in) and
-`warmpath-api` runs `uvicorn app.main:app --port 8000` with `.env` sourced from the sandbox (never in git) and a CORS regex
+Two Tenki sandboxes, both detached processes: `kindred-web` runs `next start -p 3000` (built with the API URL baked in) and
+`kindred-backend` runs `uvicorn app.main:app --port 8000` with `.env` sourced from the sandbox (never in git) and a CORS regex
 for `*.us.sb.tenki.sh`. `deploy.sh [web|api|all]` tars, uploads and restarts; `POST /reset` reseeds before a recording.
 State is in-process plus small JSON files (`data/ledger.json`, `data/bandit.json`, `data/search_cache.json`, `data/cache/`)
 and the embedded Kùzu DB, rebuilt on boot: fine for a single-instance demo, and the first thing to move to a real database

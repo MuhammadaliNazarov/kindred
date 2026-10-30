@@ -180,7 +180,7 @@ class Touch(BaseModel):
     body: str
     signal_id: str
     variant: Literal["A", "B"]
-    arm: Optional[str] = None  # bandit arm id, e.g. warmpath_hook__doc
+    arm: Optional[str] = None  # bandit arm id, e.g. warmintro_hook__doc
     status: Literal["draft", "approved", "edited", "rejected", "sent"]
     review: Review
     security: Security

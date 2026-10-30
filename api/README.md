@@ -1,4 +1,4 @@
-# Warmpath API (FastAPI + Kùzu)
+# Kindred API (FastAPI + Kùzu)
 
 ```bash
 cd api
