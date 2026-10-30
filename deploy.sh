@@ -9,10 +9,10 @@ pack() { COPYFILE_DISABLE=1 tar --exclude=node_modules --exclude=.next --exclude
 if [[ $what == web || $what == all ]]; then
   pack web
   $T sandbox write --session warmpath --path /home/tenki/web.b64 --data-file /tmp/web.b64 >/dev/null
-  $T sandbox exec --session warmpath -c "cd ~/gtm-engine && rm -rf web/src && base64 -d ~/web.b64 | tar -xzf - && cd web && npm ci --silent >/dev/null 2>&1; NEXT_PUBLIC_API_URL=$API_URL npm run build 2>&1 | tail -3; pkill -f '[n]ext-server' || pkill -f '[n]ext start' || true; sleep 1; (nohup npx next start -p 3000 -H 0.0.0.0 > ~/web.log 2>&1 &); sleep 5; curl -s -o /dev/null -w 'web %{http_code}\n' localhost:3000/intake"
+  $T sandbox exec --session warmpath -c "cd ~/gtm-engine && rm -rf web/src && base64 -d ~/web.b64 | tar -xzf - && cd web && npm ci --silent >/dev/null 2>&1; NEXT_PUBLIC_API_URL=$API_URL npm run build 2>&1 | tail -3; pkill -f '[n]ext-server' || pkill -f '[n]ext start' || true; sleep 1; (setsid nohup npx next start -p 3000 -H 0.0.0.0 > ~/web.log 2>&1 < /dev/null &); sleep 5; curl -s -o /dev/null -w 'web %{http_code}\n' localhost:3000/intake"
 fi
 if [[ $what == api || $what == all ]]; then
   pack api
   $T sandbox write --session warmpath-api --path /home/tenki/api.b64 --data-file /tmp/api.b64 >/dev/null
-  $T sandbox exec --session warmpath-api -c "cd ~/gtm && base64 -d ~/api.b64 | tar -xzf - && cd api && uv sync -q; pkill -f '[u]vicorn app.main' || true; sleep 1; (set -a; [ -f ~/gtm/api/.env ] && . ~/gtm/api/.env; set +a; DEMO_CREDITS=\${DEMO_CREDITS:-40} CORS_ORIGIN='*' nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/api.log 2>&1 &); sleep 6; curl -s localhost:8000/health"
+  $T sandbox exec --session warmpath-api -c "cd ~/gtm && base64 -d ~/api.b64 | tar -xzf - && cd api && uv sync -q; pkill -f '[u]vicorn app.main' || true; sleep 1; (set -a; [ -f ~/gtm/api/.env ] && . ~/gtm/api/.env; set +a; DEMO_CREDITS=\${DEMO_CREDITS:-40} CORS_ORIGIN="*" setsid nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/api.log 2>&1 &); sleep 6; curl -s localhost:8000/health"
 fi
