@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import clsx from "clsx";
@@ -108,14 +109,17 @@ export function CreditsMeter() {
           </Tooltip.Portal>
         </Tooltip.Root>
       </Tooltip.Provider>
-      <div className="hidden shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-neutral-600 lg:flex">
+      <Link href="/discovery" title="Leads verified with Verify & enrich on Discovery, and the average credits spent per verified lead"
+        className="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-2 py-1 text-[12px] text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 lg:flex">
         <span className="tabular-nums">
-          <Tick value={verified} className="text-neutral-900" /> verified
+          <Tick value={verified} className="text-neutral-900" /> verified {verified === 1 ? "lead" : "leads"}
         </span>
-        <span className="rounded-full border border-neutral-200 px-2 py-0.5 tabular-nums" title="Credits used ÷ verified leads">
-          {perLead === null ? "—" : `${perLead.toFixed(1)} cr`} / lead
-        </span>
-      </div>
+        {perLead !== null ? (
+          <span className="rounded-full border border-neutral-200 px-2 py-0.5 tabular-nums">{perLead.toFixed(1)} credits per verified lead</span>
+        ) : (
+          <span className="text-blue-600">Verify leads →</span>
+        )}
+      </Link>
     </div>
   );
 }
