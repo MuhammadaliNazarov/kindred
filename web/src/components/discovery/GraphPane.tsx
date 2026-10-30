@@ -52,7 +52,8 @@ export function GraphPane({
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+    // The measured box only renders once a company is selected, so re-attach then.
+  }, [!!company]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Copy so the force engine can mutate positions without touching the source data.
   const data = useMemo(() => {
@@ -83,8 +84,15 @@ export function GraphPane({
 
   const onPath = (l: GLink) => pathEdges.has(`${endId(l.source)}|${endId(l.target)}`);
 
+  // Same pick as the API's state.best_signal (what the email cites): verified sources first, then type, then date.
+  const RANK: Record<string, number> = { job_post: 6, funding: 5, exec_hire: 4, launch: 3, tech_change: 3, churn_risk: 2 };
   const topSignal: Signal | undefined = company
-    ? [...company.signals].sort((a, b) => b.date.localeCompare(a.date))[0]
+    ? [...company.signals].sort(
+        (a, b) =>
+          Number(b.source.verified) - Number(a.source.verified) ||
+          (RANK[b.type] ?? 0) - (RANK[a.type] ?? 0) ||
+          b.date.localeCompare(a.date),
+      )[0]
     : undefined;
 
   if (!company) {

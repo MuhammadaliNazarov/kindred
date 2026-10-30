@@ -34,6 +34,9 @@ import {
 } from "./seed";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+// Optional light guard; must match the API's DEMO_KEY when that is set.
+const DEMO_KEY = process.env.NEXT_PUBLIC_DEMO_KEY;
+const keyHeader: Record<string, string> = DEMO_KEY ? { "X-Demo-Key": DEMO_KEY } : {};
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -57,7 +60,8 @@ async function call<T>(path: string, fallback: () => T, init?: RequestInit): Pro
   try {
     const res = await fetch(API + path, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: { "Content-Type": "application/json", ...keyHeader, ...(init?.headers ?? {}) },
+      signal: AbortSignal.timeout(path === "/intake" ? 60000 : path === "/discover" ? 90000 : 8000),
     });
     if (!res.ok) throw new Error(`${res.status}`);
     return (await res.json()) as T;
@@ -176,7 +180,7 @@ export function moveLead(id: string, stage: Stage, actor: Actor): Promise<Lead |
 // ---------- Enrichment (Flexprice-gated) ----------
 export type EnrichResult = { ok: true; person: Person } | { ok: false; blocked: true; detail: string };
 
-export async function enrichLead(personId: string): Promise<EnrichResult> {
+export async function enrichLead(personId: string, leadId?: string): Promise<EnrichResult> {
   const lead = db.leads.find((l) => l.person_id === personId);
   const local = (): EnrichResult => {
     const p = db.people.find((x) => x.id === personId);
@@ -193,7 +197,12 @@ export async function enrichLead(personId: string): Promise<EnrichResult> {
   };
   if (!API) return local();
   try {
-    const res = await fetch(`${API}/leads/${lead?.id ?? personId}/enrich`, { method: "POST" });
+    // Use the live lead id from loaded leads; the API also maps a bare person id to its lead.
+    const res = await fetch(`${API}/leads/${encodeURIComponent(leadId ?? personId)}/enrich`, {
+      method: "POST",
+      headers: keyHeader,
+      signal: AbortSignal.timeout(8000),
+    });
     if (res.status === 402) return { ok: false, blocked: true, detail: "Enrichment paused — out of credits" };
     if (!res.ok) throw new Error(String(res.status));
     const body = await res.json();
@@ -211,8 +220,17 @@ export function reviewTouch(id: string, action: "approve" | "edit" | "reject", b
     const t = db.touches.find((x) => x.id === id);
     if (!t) return null;
     if (action === "approve") {
-      t.status = "approved";
-      spend("outreach_sent");
+      // Approve = human click → send (email only; LinkedIn stays a manual task).
+      t.status = t.channel === "email" ? "sent" : "approved";
+      if (t.channel === "email") {
+        spend("outreach_sent");
+        const lead = db.leads.find((l) => l.id === t.lead_id);
+        if (lead?.stage === "matched") {
+          lead.stage = "contacted";
+          lead.owner = "ai";
+          audit({ actor: "ai", agent: "builder", action: "lead.moved", lead_id: lead.id, detail: "matched → contacted (first touch sent)" });
+        }
+      }
     } else if (action === "edit") {
       t.status = "edited";
       if (body !== undefined) t.body = body;
@@ -222,6 +240,9 @@ export function reviewTouch(id: string, action: "approve" | "edit" | "reject", b
   };
   return call<Touch | null>(`/touches/${id}/review`, local, post({ action, body, actor: "rep" }));
 }
+
+// Runs live discovery (or the seeded replay) on the API; returns its summary. Thinking steps stream meanwhile.
+export const discover = () => call<Record<string, unknown> | null>("/discover", () => null, post());
 
 export const getAudit = () => call<AuditEvent[]>("/audit", () => db.audit);
 export const getCredits = () => call<Credits>("/credits", () => db.credits);
@@ -266,7 +287,7 @@ export const getAnalytics = () =>
     // API variants carry {sent, contacted, replied, reply_rate}; there is no open tracking, so use contacted as "opened".
     variants: a.variants.map((v) => {
       const x = v as typeof v & { contacted?: number };
-      return { ...v, opened: v.opened ?? x.contacted ?? 0 };
+      return { ...v, sent: Math.max(v.sent ?? 0, x.contacted ?? 0), opened: v.opened ?? x.contacted ?? 0 };
     }),
   }));
 

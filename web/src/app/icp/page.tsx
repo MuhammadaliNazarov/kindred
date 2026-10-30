@@ -61,9 +61,12 @@ export default function ICPPage() {
   const [icp, setIcp] = useState<ICP | null>(null);
   const [segs, setSegs] = useState<ExpansionSegment[]>([]);
   const [editing, setEditing] = useState<ExpansionSegment | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getICP().then(setIcp);
+    getICP()
+      .then((i) => setIcp(i ?? null))
+      .finally(() => setLoaded(true));
     getExpansions().then(setSegs);
   }, []);
 
@@ -74,6 +77,16 @@ export default function ICPPage() {
     setSegs(await getExpansions());
   }
 
+  if (!icp && loaded)
+    return (
+      <div className="p-8 text-[13px] text-neutral-500">
+        No ICP yet, run{" "}
+        <Link href="/intake" className="text-neutral-900 underline">
+          Intake
+        </Link>
+        .
+      </div>
+    );
   if (!icp) return <div className="p-8 text-[13px] text-neutral-500">Loading ICP…</div>;
 
   const allConf = [

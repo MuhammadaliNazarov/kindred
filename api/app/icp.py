@@ -64,12 +64,14 @@ def run(intake: Intake) -> tuple[ICP, list[ExpansionSegment]]:
         data = fallback_icp(intake)
         icp, exps_raw = ICP.model_validate(data["icp"]), data["expansions"]
     exps: list[ExpansionSegment] = []
-    for i, e in enumerate(exps_raw, 1):
-        sources: list[Source] = []
-        if e.get("search_query"):
-            from . import discovery  # live evidence for the segment when a search key is set
+    from concurrent.futures import ThreadPoolExecutor
 
-            sources = discovery.evidence_for(e["search_query"], limit=2)
+    from . import discovery  # live evidence for the segment when a search key is set
+
+    with ThreadPoolExecutor(3) as ex:  # the 3 segments in parallel so /intake doesn't stall
+        evidence = list(ex.map(lambda e: discovery.evidence_for(e["search_query"], limit=2) if e.get("search_query") else [], exps_raw))
+    for i, (e, ev) in enumerate(zip(exps_raw, evidence), 1):
+        sources: list[Source] = list(ev)
         if not sources and not was_live:
             sources = [_src(f"https://example.com/evidence/segment-{i}", f"{e['name']} (demo evidence)", e["rationale"][:90])]
         exps.append(ExpansionSegment(id=f"seg{i}", name=e["name"], rationale=e["rationale"], confidence=float(e.get("confidence", 0.5)), sources=sources, status="suggested"))

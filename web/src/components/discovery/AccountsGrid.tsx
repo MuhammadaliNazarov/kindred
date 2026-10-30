@@ -18,6 +18,7 @@ export type AccountsGridProps = {
   onSelectCompany: (c: Company) => void;
   onSelectPerson: (p: Person) => void;
   onEnrich: (p: Person) => void;
+  enriching: Set<string>;
   creditsBlocked: boolean;
   showDropped: boolean;
 };
@@ -25,7 +26,7 @@ export type AccountsGridProps = {
 const COLS = 8;
 
 export function AccountsGrid(props: AccountsGridProps) {
-  const { companies, peopleByCompany, selectedCompanyId, selectedPersonId, onSelectCompany, onSelectPerson, onEnrich, creditsBlocked, showDropped } =
+  const { companies, peopleByCompany, selectedCompanyId, selectedPersonId, onSelectCompany, onSelectPerson, onEnrich, enriching, creditsBlocked, showDropped } =
     props;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -178,7 +179,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                       <EnrichmentIndicator e={p.enrichment} />
                     </td>
                     <td colSpan={2} className="px-2 py-1.5 text-right">
-                      <EnrichButton person={p} blocked={creditsBlocked} onEnrich={onEnrich} />
+                      <EnrichButton person={p} pending={enriching.has(p.id)} blocked={creditsBlocked} onEnrich={onEnrich} />
                     </td>
                   </tr>
                 ))}
@@ -190,8 +191,8 @@ export function AccountsGrid(props: AccountsGridProps) {
   );
 }
 
-function EnrichButton({ person, blocked, onEnrich }: { person: Person; blocked: boolean; onEnrich: (p: Person) => void }) {
-  const pending = person.enrichment.email_status === "pending";
+function EnrichButton({ person, pending, blocked, onEnrich }: { person: Person; pending: boolean; blocked: boolean; onEnrich: (p: Person) => void }) {
+  // `pending` = request in flight. The API's email_status "pending" just means "not verified yet" and must stay clickable.
   const btn = (
     <button
       type="button"

@@ -174,3 +174,14 @@ def reset_sim() -> dict:
         _sim = None
         _save()
     return summary()
+
+
+def reset_all() -> dict:
+    """Clear the simulated overlay AND the real reply-learned stats (demo reset)."""
+    global _real, _sim, _rewarded
+    with _lock:
+        _real, _sim = ThompsonPolicy(None, None), None
+        _rewarded = {}
+        _real.snapshot(0)
+        _save()
+    return summary()

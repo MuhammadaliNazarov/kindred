@@ -24,7 +24,7 @@ Every agent also posts a `usage · <role>: N in / M out tokens · ≈$x` line pe
 | `agents.py` | All four agents, tools, HITL gate, dry-run simulator |
 | `run_all.sh` | `uv run python agents.py all` (or pass `--dry-run`) |
 | `.env.example` | Env vars to fill in |
-| `pyproject.toml` | Own uv project: `band-sdk[anthropic]`, `httpx`, `python-dotenv` |
+| `pyproject.toml` | Own uv project: `band-sdk[anthropic,claude-sdk]`, `httpx`, `python-dotenv` |
 
 ## Setup (what the human does)
 
@@ -32,8 +32,9 @@ Every agent also posts a `usage · <role>: N in / M out tokens · ≈$x` line pe
 2. **Create 4 remote agents in the Band UI** (app.band.ai → Agents → *New remote agent*). Name them exactly
    `Planner`, `Builder`, `Reviewer`, `Security` (the prompts @mention by these names). Copy each one's
    **Agent ID** and **API key**.
-3. **Env:** `cd api/band_agents && cp .env.example .env`, paste the 4 ID/key pairs plus `ANTHROPIC_API_KEY`.
-   `CLAUDE_MODEL` defaults to `claude-sonnet-5-5` (DESIGN §6); `WARMPATH_API` defaults to `http://localhost:8000`.
+3. **Env:** `cd api/band_agents && cp .env.example .env`, paste the 4 ID/key pairs. No `ANTHROPIC_API_KEY` needed:
+   with it empty the agents run on your Claude subscription (see *LLM backend* below). `WARMPATH_API` defaults to
+   `http://localhost:8000`.
 4. **Install + run:** `uv sync && ./run_all.sh` (or `uv run python agents.py planner` etc. in 4 terminals).
    Wait for four "Connected to platform" lines.
 5. **Room:** in Band create a chatroom **`warmpath-demo`**, add all four agents from the participants panel, and
@@ -54,6 +55,37 @@ Every agent also posts a `usage · <role>: N in / M out tokens · ≈$x` line pe
    - You click **Send** in the Outreach queue. Agents cannot: `/touches/{id}/send` is in `FORBIDDEN`.
    - Each agent's `usage ·` line shows tokens and ≈$.
 
+## LLM backend: Claude subscription or API key
+
+`BAND_LLM` picks the band-sdk adapter (same 4 roles, prompts, tools and HITL gate either way):
+
+| `BAND_LLM` | Adapter | Auth |
+|---|---|---|
+| `claude_sdk` (default when `ANTHROPIC_API_KEY` is empty) | `ClaudeSDKAdapter` → Claude Agent SDK → `claude` CLI | the Claude Code login on this machine, or `CLAUDE_CODE_OAUTH_TOKEN` |
+| `anthropic` (default when `ANTHROPIC_API_KEY` is set) | `AnthropicAdapter` | `ANTHROPIC_API_KEY`, model `CLAUDE_MODEL` |
+
+With `claude_sdk` the model is `CLAUDE_SDK_MODEL` (default `sonnet`), `permission_mode=dontAsk` so only Band's tools and
+our allow-listed custom tools can run (no Bash/Write/WebFetch), and no `~/.claude` settings are loaded.
+
+**On your Mac:** be logged into Claude Code (`claude` → `/login`). Nothing else.
+
+**On a server (Tenki sandbox), no browser login there:**
+
+```bash
+# on the Mac, once: creates a long-lived (1 year) subscription token and prints it
+claude setup-token
+# in the sandbox
+npm i -g @anthropic-ai/claude-code            # the Agent SDK drives this CLI
+export CLAUDE_CODE_OAUTH_TOKEN=<token from setup-token>   # set it as a sandbox secret/env var, not in git
+unset ANTHROPIC_API_KEY                       # or leave it empty; BAND_LLM=claude_sdk also forces it
+claude -p "say ok" --output-format json       # sanity check
+./run_all.sh
+```
+
+This spends **your Claude subscription's usage limits** (four agents share them) and is meant for personal/dev use
+like this demo, not for serving other users; for anything shared or production use an API key (`BAND_LLM=anthropic`).
+The `usage ·` line still shows a list-price ≈$ figure, marked as billed to the subscription.
+
 ## The HITL rule, in code
 
 - `FORBIDDEN` regexes in `api()` block `/touches/{id}/send` and anything matching `send`/`schema`/graph DDL for every
@@ -61,7 +93,8 @@ Every agent also posts a `usage · <role>: N in / M out tokens · ≈$x` line pe
 - `ALLOWED[role]` is a per-agent allow-list of (method, path); anything else raises `HITLError`.
 - `approvetouches` calls `require_human_approval(room_id)`: the **latest message in the room from a participant whose
   `sender_type != "Agent"`** must contain `approve` (and not `reject`). The adapter records those messages as they
-  arrive (`WarmPathAdapter.on_message`); the model never gets to assert approval itself.
+  arrive (`WarmPathAdapter.on_turn`); the model never gets to assert approval itself. (ClaudeSDKAdapter runs custom
+  tools in its local MCP server, so the gate reads the room from `ACTIVE_ROOM`, set by `on_turn`.)
 - Review/approve only marks drafts approved; sending stays with the human in the UI.
 
 ## Dry run (no Band or Anthropic keys)

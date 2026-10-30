@@ -109,7 +109,7 @@ class Company(BaseModel):
 
 class Enrichment(BaseModel):
     email: Optional[str] = None
-    email_status: Literal["valid", "accept_all", "invalid", "unknown", "pending"] = "pending"
+    email_status: Literal["valid", "accept_all", "invalid", "unknown", "pending"] = "unknown"
     mx_ok: Optional[bool] = None
     linkedin_url: Optional[str] = None
     provider: Optional[Literal["hunter", "apollo", "seed"]] = None

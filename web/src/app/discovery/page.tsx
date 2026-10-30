@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Loader2 } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import type { Company, Enrichment, GraphData, Lead, Person, ThinkingStep, WarmPath } from "@/lib/types";
-import { enrichLead, getCompanies, getGraph, getLeads, getPeople, getWarmPath } from "@/lib/api";
+import { discover, enrichLead, getCompanies, getGraph, getLeads, getPeople, getWarmPath } from "@/lib/api";
 import { useCredits, useThinking } from "@/components/shell/context";
 import { AccountsGrid } from "@/components/discovery/AccountsGrid";
 import { DEFAULT_FILTERS, Filters, applyFilters, type DiscoveryFilters } from "@/components/discovery/Filters";
@@ -29,6 +29,8 @@ export default function DiscoveryPage() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<DiscoveryFilters>(DEFAULT_FILTERS);
   const [enrichOverrides, setEnrichOverrides] = useState<Record<string, Enrichment>>({});
+  const [enriching, setEnriching] = useState<Set<string>>(new Set());
+  const [discovering, setDiscovering] = useState(false);
 
   const [selCompanyId, setSelCompanyId] = useState<string | null>(null);
   const [selPersonId, setSelPersonId] = useState<string | null>(null);
@@ -36,20 +38,39 @@ export default function DiscoveryPage() {
   const [warmPath, setWarmPath] = useState<WarmPath | null>(null);
   const [graphLoading, setGraphLoading] = useState(false);
 
+  const reload = useCallback(
+    (alive: () => boolean = () => true) =>
+      Promise.all([getCompanies(), getPeople(), getLeads()])
+        .then(([c, p, l]) => {
+          if (!alive()) return;
+          setCompanies([...c].sort((a, b) => b.score - a.score));
+          setPeople(p);
+          setLeads(l);
+          setEnrichOverrides({});
+        })
+        .catch((e: unknown) => alive() && setError(e instanceof Error ? e.message : String(e))),
+    [],
+  );
+
   useEffect(() => {
     let alive = true;
-    Promise.all([getCompanies(), getPeople(), getLeads()])
-      .then(([c, p, l]) => {
-        if (!alive) return;
-        setCompanies([...c].sort((a, b) => b.score - a.score));
-        setPeople(p);
-        setLeads(l);
-      })
-      .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
+    void reload(() => alive);
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reload]);
+
+  const onDiscover = async () => {
+    setDiscovering(true);
+    push(step({ agent: "planner", kind: "handoff", text: "Planner → Discovery: find accounts + job posts matching the ICP" }));
+    try {
+      await discover(); // the API's own thinking steps stream into the panel meanwhile
+      await reload();
+      push(step({ agent: "discovery", kind: "reason", text: "Discovery finished; accounts reloaded." }));
+    } finally {
+      setDiscovering(false);
+    }
+  };
 
   const peopleWithOverrides = useMemo(
     () => people.map((p) => (enrichOverrides[p.id] ? { ...p, enrichment: enrichOverrides[p.id] } : p)),
@@ -115,11 +136,17 @@ export default function DiscoveryPage() {
       step({
         agent: "enricher",
         kind: "meter",
-        text: `Enriching ${p.name} (${p.title}): Hunter → Apollo waterfall, MX check. Metered: lead_enriched −1 credit.`,
+        text: `Enriching ${p.name} (${p.title}): Hunter → Apollo waterfall, MX check. Metered: lead_enriched −5 credits.`,
       }),
     );
-    setEnrichOverrides((o) => ({ ...o, [p.id]: { ...p.enrichment, email_status: "pending" } }));
-    void enrichLead(p.id).then((r) => {
+    setEnriching((s) => new Set(s).add(p.id));
+    const leadId = leads.find((l) => l.person_id === p.id)?.id;
+    void enrichLead(p.id, leadId).then((r) => {
+      setEnriching((s) => {
+        const n = new Set(s);
+        n.delete(p.id);
+        return n;
+      });
       if (r.ok) {
         setEnrichOverrides((o) => ({ ...o, [p.id]: r.person.enrichment }));
         push(step({ agent: "enricher", kind: "validate", text: `${p.name}: email ${r.person.enrichment.email_status}, MX ${r.person.enrichment.mx_ok ? "ok" : "?"} (${r.person.enrichment.provider}).` }));
@@ -137,6 +164,15 @@ export default function DiscoveryPage() {
         <header className="flex items-baseline gap-3 px-4 pb-1 pt-4">
           <h1 className="font-serif text-[22px] leading-none">Discovery</h1>
           <span className="text-[12px] text-neutral-500">Accounts and buyers, every claim with its source.</span>
+          <button
+            type="button"
+            onClick={() => void onDiscover()}
+            disabled={discovering}
+            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-neutral-900 disabled:cursor-wait disabled:text-neutral-400"
+          >
+            {discovering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+            {discovering ? "Discovering…" : "Run discovery"}
+          </button>
         </header>
 
         <Filters
@@ -166,6 +202,7 @@ export default function DiscoveryPage() {
                 onSelectCompany={onSelectCompany}
                 onSelectPerson={onSelectPerson}
                 onEnrich={onEnrich}
+                enriching={enriching}
                 creditsBlocked={!!credits?.blocked}
                 showDropped={filters.showDropped}
               />

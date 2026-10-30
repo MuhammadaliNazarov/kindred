@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from urllib.parse import urlparse
 
@@ -160,6 +161,7 @@ def discover_live(icp: ICP) -> int:
         if r["url"] not in seen:
             seen.add(r["url"])
             uniq.append(r)
+    uniq = uniq[:12]  # cap: each result costs a page fetch
     thinking.emit("discovery", "reason", f"{len(uniq)} candidate results; extracting claims {{claim, url, quote}}")
 
     def fb():
@@ -167,21 +169,27 @@ def discover_live(icp: ICP) -> int:
         for i, r in enumerate(uniq):
             name, dom = _company_from_url(r["url"], r["title"])
             is_job = urlparse(r["url"]).netloc.lower() in JOB_BOARDS or "hiring" in r["title"].lower() or "job" in r["url"]
-            items.append({"idx": i, "company": name, "domain": dom, "industry": icp.industries[0].value.name, "naics": icp.industries[0].value.naics,
+            ind = icp.industries[0].value if icp.industries else None
+            items.append({"idx": i, "company": name, "domain": dom, "industry": ind.name if ind else "AI startup", "naics": ind.naics if ind else "",
                           "headcount": None, "hq": None, "signal_type": "job_post" if is_job else "launch", "summary": r["title"][:140],
                           "quote": _first_sentence(r["content"]), "date": None, "persona_title": None})
         return {"items": items}
 
     payload = [{"idx": i, "title": r["title"], "url": r["url"], "content": r["content"][:700]} for i, r in enumerate(uniq)]
     data, _ = llm.json_call("discovery", EXTRACT_SYSTEM, f"ICP: {icp.model_dump_json()[:1500]}\nResults: {json.dumps(payload)}", fb)
+    if not isinstance(data, dict):
+        data = fb()
     added = 0
-    for it in data.get("items", []):
+    pairs = []
+    for it in data.get("items", []) or []:
         try:
             r = uniq[int(it["idx"])]
         except Exception:
             continue
-        src = Source(url=r["url"], title=r["title"], quote=it.get("quote") or "", fetched_at=thinking.now(), verified=False)
-        validator.validate(src)
+        pairs.append((it, r, Source(url=r["url"], title=r["title"], quote=it.get("quote") or "", fetched_at=thinking.now(), verified=False)))
+    with ThreadPoolExecutor(8) as ex:  # validate quotes in parallel, not one URL at a time
+        list(ex.map(lambda x: validator.validate(x[2]), pairs))
+    for it, r, src in pairs:
         if not src.verified:
             state.dropped_claims.append({"claim": it.get("summary", ""), "company": it.get("company"), **src.model_dump()})
             continue
@@ -197,7 +205,7 @@ def discover_live(icp: ICP) -> int:
                 c = state.companies[cid]
             else:
                 c = Company(id=cid, name=name, domain=(it.get("domain") or _company_from_url(r["url"], r["title"])[1]).replace("https://", "").strip("/"),
-                            industry=it.get("industry") or "", naics=it.get("naics") or "", headcount=int(it.get("headcount") or 50), hq=it.get("hq") or "—",
+                            industry=it.get("industry") or "", naics=it.get("naics") or "", headcount=int(re.sub(r"\D", "", str(it.get("headcount") or ""))[:7] or 50), hq=it.get("hq") or "—",
                             fit=0, intent=0, score=0, tier="C", signals=[sig], competitors_used=[], sources=[src])
                 state.companies[cid] = c
                 ptitle = it.get("persona_title") or (icp.personas[0].value.title if icp.personas else "Head of Engineering")

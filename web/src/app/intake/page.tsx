@@ -104,7 +104,9 @@ export default function IntakePage() {
   const [demoRunning, setDemoRunning] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
 
-  useEffect(() => chatEnd.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs]);
 
   const missing = missingKeys(form);
 

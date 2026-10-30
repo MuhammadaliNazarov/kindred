@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Request  # noqa: E402
+from fastapi import Depends, FastAPI, Header, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sse_starlette.sse import EventSourceResponse  # noqa: E402
 
@@ -28,7 +28,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Warmpath API", version="0.1.0", lifespan=lifespan)
 origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "http://localhost:3000").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
-                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+                   allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+
+
+def demo_key(x_demo_key: Optional[str] = Header(default=None)):
+    """Light guard on mutating/costly routes: enforced only when DEMO_KEY is set (stops casual scanning; not real auth)."""
+    want = os.getenv("DEMO_KEY")
+    if want and x_demo_key != want:
+        raise HTTPException(401, "missing or bad X-Demo-Key")
+
+
+guard = [Depends(demo_key)]
 
 
 @app.get("/health")
@@ -36,7 +46,7 @@ def health():
     return {
         "ok": True,
         "modes": {
-            "llm": "live" if llm.live() else "fallback",
+            "llm": llm.mode(),
             "search": "tavily" if os.getenv("TAVILY_API_KEY") else "serper" if os.getenv("SERPER_API_KEY") else "seed",
             "enrichment": "hunter" if os.getenv("HUNTER_API_KEY") else "apollo" if os.getenv("APOLLO_API_KEY") else "seed",
             "email": "sendgrid" if all(os.getenv(k) for k in ("SENDGRID_API_KEY", "SENDGRID_FROM", "DEMO_INBOX")) else "simulated",
@@ -55,6 +65,13 @@ def post_intake(body: Intake):
     graph.upsert_product(body.product_name, body.product_url)
     i, exps = icp.run(body)
     discovery.rescore_all()
+    # Re-draft the first lead's queued touches so the warm-path employer in the email matches the new graph.
+    first = state.leads.get("L1") or next(iter(state.leads.values()), None)
+    if first:
+        try:
+            outreach.draft(first.id, use_llm=False)
+        except HTTPException:
+            pass
     return {"icp": i, "expansions": exps}
 
 
@@ -84,7 +101,7 @@ def update_expansion(seg_id: str, body: ExpansionUpdate):
 
 
 # ---------- discovery / graph ----------
-@app.post("/discover")
+@app.post("/discover", dependencies=guard)
 def post_discover():
     return discovery.run()
 
@@ -131,8 +148,11 @@ def move_lead(lead_id: str, body: MoveBody):
     return pipeline.move(lead_id, body.stage, body.actor, agent=None if body.actor == "rep" else "planner")
 
 
-@app.post("/leads/{lead_id}/enrich", response_model=Person)
+@app.post("/leads/{lead_id}/enrich", response_model=Person, dependencies=guard)
 def enrich_lead(lead_id: str):
+    # Accept a person id too (the UI may only know the person): map it to that person's lead.
+    if lead_id not in state.leads:
+        lead_id = next((l.id for l in state.leads.values() if l.person_id == lead_id), lead_id)
     return enrich.enrich_lead(lead_id)
 
 
@@ -147,17 +167,43 @@ def get_touches(lead_id: Optional[str] = None):
     return [t for t in state.touches.values() if not lead_id or t.lead_id == lead_id]
 
 
-@app.post("/touches/{touch_id}/review", response_model=Touch)
+@app.post("/touches/{touch_id}/review", response_model=Touch, dependencies=guard)
 def review_touch(touch_id: str, body: ReviewBody):
-    return outreach.review_touch(touch_id, body.action, body.actor, body.body, body.subject)
+    # Review is the human-in-the-loop click: always logged as the rep, whatever the caller claims.
+    t = outreach.review_touch(touch_id, body.action, "rep", body.body, body.subject)
+    if body.action == "approve" and t.channel == "email":
+        try:
+            t = outreach.send_touch(touch_id)  # approved by a human → send (SendGrid to DEMO_INBOX only, else simulated)
+        except HTTPException as e:
+            if e.status_code not in (402, 422):
+                raise
+            thinking.emit("builder", "reason", f"Approved {touch_id} but not sent: {e.detail}")  # stays 'approved'
+    return t
 
 
-@app.post("/touches/{touch_id}/send", response_model=Touch)
+@app.post("/touches/{touch_id}/send", response_model=Touch, dependencies=guard)
 def send_touch(touch_id: str):
     return outreach.send_touch(touch_id)
 
 
 # ---------- audit / credits / analytics / thinking ----------
+@app.post("/reset", dependencies=guard)
+def reset_all():
+    """Reseed everything (companies, people, leads, touches, audit, credits, bandit) — run before recording."""
+    with state.lock:
+        state.intake = state.icp = None
+        for d in (state.expansions, state.companies, state.people, state.leads, state.touches, outreach.state_warm):
+            d.clear()
+        state.audit.clear()
+        state.dropped_claims.clear()
+        pipeline._variant_flip[0] = 0
+        seed.CONNECTORS.clear()
+    billing.reset()
+    bandit.reset_all()
+    seed.load()
+    return health()
+
+
 @app.get("/audit", response_model=list[AuditEvent])
 def get_audit():
     return list(reversed(state.audit))
@@ -168,7 +214,7 @@ def get_credits():
     return billing.credits()
 
 
-@app.post("/credits/reset", response_model=Credits)
+@app.post("/credits/reset", response_model=Credits, dependencies=guard)
 def reset_credits():
     return billing.reset()
 
@@ -209,12 +255,12 @@ def get_bandit():
     return bandit.summary()
 
 
-@app.post("/bandit/simulate")
+@app.post("/bandit/simulate", dependencies=guard)
 def simulate_bandit(body: SimBody = SimBody()):
     return bandit.simulate(max(1, min(body.sends, 5000)), body.seed)
 
 
-@app.post("/bandit/reset")
+@app.post("/bandit/reset", dependencies=guard)
 def reset_bandit_sim():
     """Clear the SIMULATED overlay; GET /bandit then shows real reply-learned stats."""
     return bandit.reset_sim()

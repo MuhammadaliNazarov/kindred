@@ -17,7 +17,8 @@ export function CreditsMeter() {
 
   const pct = credits.granted > 0 ? Math.min(100, (credits.balance / credits.granted) * 100) : 0;
   const totalUsed = credits.granted - credits.balance;
-  const verified = credits.used.lead_enriched;
+  // The API meters credits (5 per enrichment); the offline seed counts leads. Show a lead count either way.
+  const verified = Math.round(credits.used.lead_enriched / (process.env.NEXT_PUBLIC_API_URL ? 5 : 1));
   const perLead = verified > 0 ? totalUsed / verified : null;
   const low = pct < 15;
 
@@ -57,7 +58,7 @@ export function CreditsMeter() {
                   {USAGE_LABELS.map((u) => (
                     <tr key={u.key}>
                       <td className="py-0.5 text-neutral-600">{u.label}</td>
-                      <td className="py-0.5 text-right">{credits.used[u.key]}</td>
+                      <td className="py-0.5 text-right">{u.key === "lead_enriched" ? verified : credits.used[u.key]}</td>
                     </tr>
                   ))}
                   <tr className="border-t border-neutral-200">
@@ -75,7 +76,7 @@ export function CreditsMeter() {
           <span className="text-neutral-900">{verified}</span> verified leads
         </span>
         <span className="rounded-full border border-neutral-200 px-2 py-0.5 tabular-nums" title="Credits used ÷ verified leads">
-          {perLead === null ? "—" : `$${perLead.toFixed(2)}`} per verified lead
+          {perLead === null ? "—" : `${perLead.toFixed(1)} credits`} per verified lead
         </span>
       </div>
     </div>

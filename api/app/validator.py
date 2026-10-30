@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import html
+import ipaddress
 import re
+import socket
 import unicodedata
+from urllib.parse import urlparse
 
 import httpx
 
@@ -11,6 +14,8 @@ from . import thinking
 from .models import Source
 
 _cache: dict[str, str | None] = {}
+_CACHE_MAX = 512
+_MAX_BYTES = 2_000_000
 UA = {"User-Agent": "Mozilla/5.0 (Warmpath quote validator; +https://example.com)"}
 
 
@@ -22,17 +27,57 @@ def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+def _public_url(url: str) -> bool:
+    """SSRF guard: http(s) only, and every resolved IP must be public (no private/loopback/link-local/metadata)."""
+    try:
+        u = urlparse(url)
+        if u.scheme not in ("http", "https") or not u.hostname:
+            return False
+        for info in socket.getaddrinfo(u.hostname, u.port or (443 if u.scheme == "https" else 80)):
+            ip = ipaddress.ip_address(info[4][0].split("%")[0])
+            if not ip.is_global or ip.is_multicast or ip.is_reserved:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _fetch(url: str) -> str | None:
+    with httpx.Client(headers=UA, timeout=4, follow_redirects=False) as c:
+        for _ in range(4):  # original + at most 3 redirects, each re-checked
+            if not _public_url(url):
+                return None
+            with c.stream("GET", url) as r:
+                if r.is_redirect and r.headers.get("location"):
+                    url = str(r.url.join(r.headers["location"]))
+                    continue
+                if r.status_code >= 400:
+                    return None
+                buf = bytearray()
+                for chunk in r.iter_bytes():
+                    buf += chunk
+                    if len(buf) >= _MAX_BYTES:
+                        break
+                return bytes(buf[:_MAX_BYTES]).decode(r.encoding or "utf-8", errors="replace")
+    return None
+
+
 def page_text(url: str) -> str | None:
     if url in _cache:
         return _cache[url]
     text = None
     try:
-        r = httpx.get(url, headers=UA, timeout=8, follow_redirects=True)
-        if r.status_code < 400:
-            body = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", r.text)
+        raw = _fetch(url)
+        if raw is not None:
+            body = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", raw)
             text = norm(re.sub(r"(?s)<[^>]+>", " ", body))
     except Exception:
         text = None
+    if len(_cache) >= _CACHE_MAX:
+        try:
+            _cache.pop(next(iter(_cache)), None)
+        except Exception:
+            _cache.clear()
     _cache[url] = text
     return text
 

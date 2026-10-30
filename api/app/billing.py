@@ -122,7 +122,7 @@ def credits() -> Credits:
     if live():
         lb = _live_balance()
         if lb is not None:
-            balance = lb
+            balance = min(balance, lb)  # local ledger still enforces the gate if the wallet lags
     return Credits(
         balance=round(balance, 2),
         granted=d["granted"],

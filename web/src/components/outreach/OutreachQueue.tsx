@@ -115,6 +115,9 @@ export function OutreachQueue() {
       if (res && typeof res === "object" && "id" in res && "status" in res) {
         const updated = res as Touch;
         setTouches((ts) => ts.map((x) => (x.id === t.id ? { ...x, ...updated } : x)));
+        if (action === "approve" && updated.status === "sent")
+          push({ id: uid("th"), at: new Date().toISOString(), agent: "builder", kind: "handoff",
+            text: `Sent step ${t.step} (${t.channel}) for ${leadLabel(t.lead_id)} to the demo inbox; outreach_sent metered, lead → contacted.` });
       }
     } catch {
       /* keep optimistic state for the demo */

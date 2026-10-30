@@ -1,12 +1,18 @@
 """WarmPath Band room: Planner -> Builder -> Reviewer -> Security -> HUMAN.
 
-Four Band remote agents (band-sdk[anthropic]) that drive the WarmPath FastAPI
+Four Band remote agents (band-sdk) that drive the WarmPath FastAPI
 backend through a small, allow-listed set of tools, with a hard-coded
 human-in-the-loop gate: nothing is sent and no schema changes without a human
 typing "approve" in the room.
 
     python agents.py planner|builder|reviewer|security|all   # live, needs Band keys
     python agents.py --dry-run                                # local simulation, no keys
+
+LLM backend (BAND_LLM):
+    claude_sdk  (default when ANTHROPIC_API_KEY is empty) ClaudeSDKAdapter -> Claude Agent SDK ->
+                local `claude` CLI, authenticated by the Claude Code login on this machine or by
+                CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`). Uses the Claude subscription.
+    anthropic   AnthropicAdapter with ANTHROPIC_API_KEY (pay-per-token API).
 """
 
 from __future__ import annotations
@@ -32,6 +38,14 @@ CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5-5")
 # $ per 1M tokens (Sonnet 5.5: $2 in / $10 out) for the cost line each agent posts.
 PRICE_IN, PRICE_OUT = float(os.environ.get("PRICE_IN", "2")), float(os.environ.get("PRICE_OUT", "10"))
 
+BAND_LLM = (os.environ.get("BAND_LLM") or ("anthropic" if os.environ.get("ANTHROPIC_API_KEY") else "claude_sdk")).strip().lower()
+if BAND_LLM not in ("claude_sdk", "anthropic"):
+    sys.exit(f"BAND_LLM must be claude_sdk or anthropic, got {BAND_LLM!r}")
+if BAND_LLM == "claude_sdk" and not os.environ.get("ANTHROPIC_API_KEY"):
+    os.environ.pop("ANTHROPIC_API_KEY", None)  # an empty key from .env must not shadow the subscription login
+# Model for the Claude SDK path: a family alias ("sonnet") or full id; override with CLAUDE_SDK_MODEL.
+CLAUDE_SDK_MODEL = os.environ.get("CLAUDE_SDK_MODEL", "sonnet")
+
 DEMO_PROMPT = "Find 10 Tier-A buyers for Tenki and draft outreach"
 
 # --------------------------------------------------------------------------
@@ -40,6 +54,14 @@ DEMO_PROMPT = "Find 10 Tier-A buyers for Tenki and draft outreach"
 # --------------------------------------------------------------------------
 HUMAN_MESSAGES: dict[str, list[dict[str, str]]] = {}  # room_id -> [{sender, text, at}]
 CURRENT_ROOM: contextvars.ContextVar[str] = contextvars.ContextVar("current_room", default="dry-run")
+# ClaudeSDKAdapter runs custom tools inside its local MCP server, outside the turn's context,
+# so the contextvar is not visible there. on_turn also records the room here as a fallback.
+ACTIVE_ROOM: dict[str, str] = {"room": "dry-run"}
+
+
+def current_room() -> str:
+    room = CURRENT_ROOM.get()
+    return room if room != "dry-run" else ACTIVE_ROOM["room"]
 
 
 class HITLError(PermissionError):
@@ -202,7 +224,7 @@ class ApproveTouchesInput(BaseModel):
 
 
 async def approvetouches(i: ApproveTouchesInput) -> str:
-    room = CURRENT_ROOM.get()
+    room = current_room()
     try:
         who = require_human_approval(room)  # the hard-coded gate
     except HITLError as e:
@@ -276,22 +298,39 @@ If the tool returns REFUSED, relay it; never argue with it.""",
 # Live Band agents
 # --------------------------------------------------------------------------
 def build_adapter(role: str):
+    """Same roles, prompts, tools and HITL ledger for both backends; only the LLM adapter differs."""
     from band import Emit
-    from band.adapters import AnthropicAdapter, AnthropicAdapterConfig
 
-    class WarmPathAdapter(AnthropicAdapter):
-        """AnthropicAdapter + human-message ledger (HITL) + a visible cost line per turn."""
+    if BAND_LLM == "claude_sdk":
+        from band.adapters import ClaudeSDKAdapter as Base
+        from band.adapters.claude_sdk import ClaudeSDKAdapterConfig, ClaudePermissionMode
+
+        # DONT_ASK: only allow-listed tools run (Band's own + our custom tools, which band-sdk
+        # pre-approves); native Claude Code tools (Bash, Write, WebFetch...) are denied. No host
+        # ~/.claude settings are loaded (setting_sources defaults to ()).
+        config = ClaudeSDKAdapterConfig(model=CLAUDE_SDK_MODEL, custom_section=SPECS[role]["prompt"],
+                                        permission_mode=ClaudePermissionMode.DONT_ASK, turn_timeout_s=600)
+        model_label = f"{CLAUDE_SDK_MODEL} via Claude subscription"
+    else:
+        from band.adapters import AnthropicAdapter as Base, AnthropicAdapterConfig
+
+        config = AnthropicAdapterConfig(model=CLAUDE_MODEL, custom_section=SPECS[role]["prompt"], max_tokens=4096)
+        model_label = CLAUDE_MODEL
+
+    class WarmPathAdapter(Base):
+        """LLM adapter + human-message ledger (HITL) + a visible cost line per turn."""
 
         async def on_turn(self, messages, tools, history, participants_msg, contacts_msg, *, is_session_bootstrap, room_id):
-            if is_session_bootstrap and history:
+            if is_session_bootstrap and isinstance(history, list):
                 for h in history:  # prime the ledger: converted history keeps humans as role=user text
-                    c = h.get("content")
+                    c = h.get("content") if isinstance(h, dict) else None
                     if h.get("role") == "user" and isinstance(c, str) and not c.startswith("[SYSTEM"):
                         record_human_message(room_id, "human(history)", c)
             for msg in messages:
                 if (msg.sender_type or "") != "Agent":
                     record_human_message(room_id, msg.sender_name or msg.sender_id, msg.content)
             CURRENT_ROOM.set(room_id)
+            ACTIVE_ROOM["room"] = room_id
             await super().on_turn(messages, tools, history, participants_msg, contacts_msg, is_session_bootstrap=is_session_bootstrap, room_id=room_id)
 
         async def emit_usage(self, tools, usage):
@@ -299,16 +338,13 @@ def build_adapter(role: str):
             if usage.is_empty:
                 return
             cost = (usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens) / 1e6 * PRICE_IN + usage.output_tokens / 1e6 * PRICE_OUT
+            note = " list-price equivalent, billed to subscription" if BAND_LLM == "claude_sdk" else ""
             try:
-                await tools.send_message(f"usage · {role}: {usage.input_tokens + usage.cache_read_tokens} in / {usage.output_tokens} out tokens · ≈${cost:.4f} ({CLAUDE_MODEL})")
+                await tools.send_message(f"usage · {role}: {usage.input_tokens + usage.cache_read_tokens} in / {usage.output_tokens} out tokens · ≈${cost:.4f}{note} ({model_label})")
             except Exception:
                 pass
 
-    return WarmPathAdapter(
-        AnthropicAdapterConfig(model=CLAUDE_MODEL, custom_section=SPECS[role]["prompt"], max_tokens=4096),
-        additional_tools=SPECS[role]["tools"],
-        emit=Emit.TOOL_CALLS | Emit.USAGE,
-    )
+    return WarmPathAdapter(config, additional_tools=SPECS[role]["tools"], emit=Emit.TOOL_CALLS | Emit.USAGE)
 
 
 async def run_live(roles: list[str]) -> None:
@@ -320,7 +356,7 @@ async def run_live(roles: list[str]) -> None:
         if not aid or not key:
             sys.exit(f"Missing {role.upper()}_AGENT_ID / {role.upper()}_API_KEY in .env")
         agents.append(Agent.create(adapter=build_adapter(role), agent_id=aid, api_key=key))
-    print(f"[band] running {', '.join(roles)} against {WARMPATH_API} with {CLAUDE_MODEL}")
+    print(f"[band] running {', '.join(roles)} against {WARMPATH_API} with BAND_LLM={BAND_LLM} ({CLAUDE_SDK_MODEL if BAND_LLM == 'claude_sdk' else CLAUDE_MODEL})")
     await asyncio.gather(*(a.run() for a in agents))
 
 

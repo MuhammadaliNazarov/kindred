@@ -3,6 +3,7 @@ checks; HITL review; SendGrid send forced to DEMO_INBOX."""
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from urllib.parse import urlparse
@@ -12,6 +13,8 @@ from fastapi import HTTPException
 
 from . import bandit, billing, graph, llm, pipeline, state, thinking, verifier
 from .models import Review, Security, Touch
+
+log = logging.getLogger("warmpath.outreach")
 
 PERSONA_RULES = {
     "c-level": "Lead with business outcome and speed; max 90 words; no jargon.",
@@ -39,7 +42,8 @@ def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | N
     warm = f"{connector_person} and I both worked at {connector}, so happy to have {_first(connector_person)} intro us if easier. " if connector_person and connector else ""
     sig_line = f"Saw {co.name}'s {sig.type.replace('_', ' ')} on {sig.date}: {sig.summary}."
     if variant == "A":
-        s1 = f"{co.name}: {sig.summary[:60]}"
+        summ = sig.summary if len(sig.summary) <= 60 else sig.summary[:60].rsplit(" ", 1)[0].rstrip(",;:-—") + "…"  # cut at a word
+        s1 = f"{co.name}: {summ}"
     else:
         s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
     hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmpath_hook", "call")
@@ -48,7 +52,7 @@ def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | N
              f"Teams in that spot often build sandbox infra for agent code themselves. {product} ({product_url}) gives you that as an API, "
              f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmpath_hook' else ''}{cta_line}\n\n— Ali")
     body2 = (f"Hi {_first(person.name)}, following up on the {sig.type.replace('_', ' ')} from {sig.date}. "
-             f"If the sandbox work is already scoped, happy to share how other agent teams cut it from a quarter to a week with {product}. Reply 'yes' and I'll send a short plan.")
+             f"If the sandbox work is already scoped, happy to share how {product} would fit. Reply 'yes' and I'll send a short plan.")
     body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
     return {"touches": [
         {"step": 1, "channel": "email", "subject": s1, "body": body1},
@@ -92,7 +96,7 @@ def review(t: Touch, lead) -> Review:
     v = verifier.verify(t.body, co.name if co else "", (sig.summary + " " + sig.type.replace("_", " ")) if sig else "",
                         context=ctx_txt, allowed_domains=allowed)
     vnote = f"verifier {v['score']}/{v['max']}. "
-    hard_fail = any(not c["pass"] for c in v["checks"] if c["name"] in ("no outcome guarantees", "links only to allowed domains"))
+    hard_fail = any(not c["pass"] for c in v["checks"])  # any failed verifier check → the rep must fix before approving
     extra = dict(score=v["score"], max_score=v["max"], checks=v["checks"])
     if not unsupported:
         verdict = "fix" if hard_fail else "pass"
@@ -141,7 +145,9 @@ def check(t: Touch, lead) -> Touch:
 
 def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
     lead = pipeline.get_lead(lead_id)
-    p, co = state.people[lead.person_id], state.companies[lead.company_id]
+    p, co = state.people.get(lead.person_id), state.companies.get(lead.company_id)
+    if not p or not co:
+        raise HTTPException(404, "person/company missing")
     sig = state.best_signal(co)
     if not sig:
         raise HTTPException(422, "no cited signal for this lead — refusing to write outreach without a 'why now'")
@@ -204,7 +210,7 @@ def review_touch(tid: str, action: str, actor: str, body: str | None, subject: s
             t.body = body
         if subject is not None:
             t.subject = subject
-        t.status = "edited"
+        t.status = "edited"  # an edit is NOT an approval: the human must click Approve again before it can send
         check(t, lead)
     state.log(actor, f"touch_{action}", f"{t.id} step {t.step} ({t.channel}) → {t.status}", agent=None, lead_id=t.lead_id)
     return t
@@ -214,23 +220,35 @@ def _sendgrid(subject: str, body: str) -> tuple[bool, str]:
     key, frm, inbox = os.getenv("SENDGRID_API_KEY"), os.getenv("SENDGRID_FROM"), os.getenv("DEMO_INBOX")
     if not (key and frm and inbox):
         return False, "simulated (no SENDGRID_API_KEY/SENDGRID_FROM/DEMO_INBOX)"
-    r = httpx.post("https://api.sendgrid.com/v3/mail/send", headers={"Authorization": f"Bearer {key}"}, timeout=15, json={
-        "personalizations": [{"to": [{"email": inbox}]}], "from": {"email": frm}, "subject": subject,
-        "content": [{"type": "text/plain", "value": body}],
-        "tracking_settings": {"click_tracking": {"enable": False}, "open_tracking": {"enable": False}}})
+    inbox = inbox.strip()
+    # DEMO_INBOX must be ONE address on one of our own domains (DEMO_INBOX_DOMAINS), never a prospect / a list.
+    allowed = [d.strip().lower() for d in os.getenv("DEMO_INBOX_DOMAINS", "").split(",") if d.strip()]
+    if inbox.count("@") != 1 or any(c in inbox for c in ",; <>") or not allowed or inbox.rsplit("@", 1)[1].lower() not in allowed:
+        log.warning("DEMO_INBOX %r rejected (set DEMO_INBOX_DOMAINS to your own domains); simulating send", inbox)
+        return False, "simulated (DEMO_INBOX not on DEMO_INBOX_DOMAINS)"
+    try:
+        r = httpx.post("https://api.sendgrid.com/v3/mail/send", headers={"Authorization": f"Bearer {key}"}, timeout=15, json={
+            "personalizations": [{"to": [{"email": inbox}]}], "from": {"email": frm}, "subject": subject,
+            "content": [{"type": "text/plain", "value": body}],
+            "tracking_settings": {"click_tracking": {"enable": False}, "open_tracking": {"enable": False}}})
+    except httpx.HTTPError as e:
+        return False, f"simulated (SendGrid error {type(e).__name__})"
     if r.status_code >= 300:
-        raise HTTPException(502, f"SendGrid HTTP {r.status_code}: {r.text[:200]}")
+        log.error("SendGrid HTTP %s: %s", r.status_code, r.text[:500])
+        raise HTTPException(502, "send failed")
     return True, f"SendGrid → {inbox}"
 
 
 def send_touch(tid: str, actor: str = "rep") -> Touch:
     t = get_touch(tid)
-    if t.status not in ("approved", "edited"):
+    if t.status != "approved":
         raise HTTPException(409, f"touch is '{t.status}': only human-approved touches can be sent (HITL)")
     if t.security.verdict != "pass":
         raise HTTPException(422, f"security check failed: {t.security.notes}")
     lead = pipeline.get_lead(t.lead_id)
-    p, co = state.people[lead.person_id], state.companies[lead.company_id]
+    p, co = state.people.get(lead.person_id), state.companies.get(lead.company_id)
+    if not p or not co:
+        raise HTTPException(404, "person/company missing")
     if t.channel == "email":
         billing.check("outreach_sent", agent="builder", lead_id=lead.id)
         banner = f"[DEMO SEND — intended for {p.name}, {p.title} at {co.name}; delivered to the demo inbox only]\n\n"

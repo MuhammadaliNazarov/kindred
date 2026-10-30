@@ -46,7 +46,9 @@ def lead_sources(lead: Lead) -> list[Source]:
 
 
 def best_signal(company: Company) -> Optional[Signal]:
-    if not company.signals:
+    dropped = {d.get("url") for d in dropped_claims}
+    kept = [s for s in company.signals if s.source.url not in dropped]  # never lead with a claim the validator dropped
+    if not kept:
         return None
     rank = {"job_post": 6, "funding": 5, "exec_hire": 4, "launch": 3, "tech_change": 3, "churn_risk": 2}
-    return sorted(company.signals, key=lambda s: (s.source.verified, rank.get(s.type, 0), s.date), reverse=True)[0]
+    return sorted(kept, key=lambda s: (s.source.verified, rank.get(s.type, 0), s.date), reverse=True)[0]

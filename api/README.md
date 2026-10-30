@@ -12,7 +12,7 @@ the Tenki demo seed (fictional companies, `example.com` sources, `verified:false
 
 | Integration | Live when set | Fallback |
 |---|---|---|
-| Claude (ICP, extraction, copy) | `ANTHROPIC_API_KEY` (+`ANTHROPIC_MODEL`) | canned Tenki ICP + template copy |
+| Claude (ICP, extraction, copy) | `ANTHROPIC_API_KEY` (+`ANTHROPIC_MODEL`) → else `claude` CLI on PATH = your Claude subscription (`CLAUDE_CLI_MODEL`, default `sonnet`) | canned Tenki ICP + template copy |
 | Search | `TAVILY_API_KEY` → `SERPER_API_KEY` | seed dataset |
 | Quote validator | always (httpx fetches the URL; claims whose quote isn't found are dropped → `GET /dropped`) | — |
 | Enrichment | `HUNTER_API_KEY` (finder/domain-search + verifier/MX) → `APOLLO_API_KEY` | deterministic seed |
@@ -21,6 +21,21 @@ the Tenki demo seed (fictional companies, `example.com` sources, `verified:false
 
 Costs: `lead_enriched` 5, `outreach_sent` 1, `graph_query` 0.1. Out of credits → enrich returns **402** and the thinking feed shows
 "Enrichment paused — out of credits". Demo: `DEMO_CREDITS=3` blocks on the first enrich; `POST /credits/reset` refills.
+
+## Claude without an API key (subscription via Claude Code)
+
+`app/llm.py` tries, in order: `ANTHROPIC_API_KEY` → Anthropic SDK; else the `claude` CLI → `claude -p … --output-format json
+--model sonnet --tools "" --strict-mcp-config --no-session-persistence` in a temp dir (no tools, 90 s timeout, first JSON
+object parsed from `result`); else the canned fallback. `/health` → `modes.llm` is `anthropic`, `claude-cli` or `fallback`
+(`llm.mode()`). Expect ~8-20 s per call on the CLI path.
+
+- **Mac:** be logged into Claude Code (`claude`, then `/login`) and leave `ANTHROPIC_API_KEY` empty. Done.
+- **Server (Tenki sandbox):** on the Mac run `claude setup-token` (creates a long-lived subscription token), then in the
+  sandbox `npm i -g @anthropic-ai/claude-code` and set `CLAUDE_CODE_OAUTH_TOKEN=<token>` as a sandbox env var/secret
+  (never commit it). Check with `claude -p "say ok" --output-format json`, then start uvicorn.
+
+This uses **your Claude subscription's usage limits** and is for personal use (a demo you run yourself), not for serving
+other people's traffic; use an API key for that.
 
 ## Routes
 POST /intake · GET /icp · GET /expansions · POST /expansions/{id} `{status,name?,rationale?}` · POST /discover · GET /companies ·
