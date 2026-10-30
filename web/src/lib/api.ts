@@ -22,6 +22,7 @@ import type {
   EnvStep,
   TrainPoint,
   ModelEval,
+  AnalyzeResult,
 } from "./types";
 import {
   seedAudit,
@@ -90,6 +91,31 @@ function spend(kind: keyof Credits["used"], n = 1) {
 }
 
 // ---------- Intake / ICP ----------
+// Reads the company's website, LinkedIn and socials. No seed fallback: returns null when the API
+// is missing or fails, so the UI never fills in someone else's (demo) data.
+export async function analyzeCompany(url: string, name?: string, description?: string): Promise<AnalyzeResult | null> {
+  if (!API) return null;
+  try {
+    const res = await fetch(API + "/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...keyHeader },
+      body: JSON.stringify({ url, name: name || undefined, description: description || undefined }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Partial<AnalyzeResult>;
+    if (!data || typeof data !== "object") return null;
+    return {
+      intake: data.intake ?? {},
+      evidence: Array.isArray(data.evidence) ? data.evidence : [],
+      summary: typeof data.summary === "string" ? data.summary : "",
+      icp_hints: Array.isArray(data.icp_hints) ? data.icp_hints : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function postIntake(intake: Intake): Promise<ICP> {
   return call<ICP>("/intake", () => {
     db.intake = clone(intake);

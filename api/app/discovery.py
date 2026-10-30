@@ -148,7 +148,8 @@ def _evidence_fit(c: Company, icp: ICP | None) -> int:
     text = " ".join(f"{g.summary} {g.source.quote} {g.source.title}" for g in c.signals if g.source.verified).lower()
     if not text:
         return 0
-    terms = set(EVIDENCE_TERMS)
+    terms = set(EVIDENCE_TERMS) if state.is_default_product(state.intake) else {
+        w for h in (state.profile or {}).get("icp_hints", []) for w in re.findall(r"[a-z]{6,}", h.lower())}
     if icp:
         for t in icp.triggers:
             terms |= {w for w in re.findall(r"[a-z]{6,}", t.value.description.lower())}
@@ -292,6 +293,8 @@ NEWS = ["techcrunch.com", "businesswire.com", "prnewswire.com", "venturebeat.com
 
 def _queries(icp: ICP) -> list[tuple[str, dict]]:
     """(query, tavily params). Job posts on ATS pages are the strongest free signal; funding/launch news second."""
+    if not state.is_default_product(state.intake):
+        return _queries_for_product(icp)
     persona = icp.personas[0].value.title if icp.personas else "infrastructure engineer"
     ind = icp.industries[0].value.name if icp.industries else "AI agent startup"
     ind = re.sub(r"\s*\(.*?\)", "", ind)
@@ -306,6 +309,26 @@ def _queries(icp: ICP) -> list[tuple[str, dict]]:
     for seg in state.expansions.values():
         if seg.status in ("accepted", "adjusted"):
             qs.append((f"{seg.name} startup hiring infrastructure engineer", {"include_domains": ATS}))
+    return qs
+
+
+def _queries_for_product(icp: ICP) -> list[tuple[str, dict]]:
+    """Queries built from THIS seller's ICP (its stated audience + triggers), never the demo seller's keywords."""
+    hints = (state.profile or {}).get("icp_hints") or []
+    aud = re.sub(r"^(?:built for|made for|designed for|for|helps?|helping|serving|serves|supporting)\s+", "", hints[0], flags=re.I) if hints else (
+        re.sub(r"\s*\(.*?\)", "", icp.industries[0].value.name) if icp.industries else "startups")
+    persona = re.sub(r"\s*/.*", "", icp.personas[0].value.title) if icp.personas else "founder"
+    news = {"topic": "news", "time_range": "month", "include_domains": NEWS}
+    qs: list[tuple[str, dict]] = []
+    for t in icp.triggers[:3]:
+        d = re.sub(r"\s*\(.*?\)", "", t.value.description)
+        qs.append((f"startup {d}"[:300], news if t.value.type in ("funding", "launch") else {}))
+    qs.append((f"{aud} {persona} startup raises seed round"[:300], news))
+    qs.append((f"{aud} startup hiring first international employee"[:300] if "border" in aud.lower() or "international" in aud.lower()
+               else f"{aud} startup hiring {persona}"[:300], {"include_domains": ATS}))
+    for seg in state.expansions.values():
+        if seg.status in ("accepted", "adjusted"):
+            qs.append((f"{seg.name} startup", {}))
     return qs
 
 
@@ -341,7 +364,7 @@ def _seller_names() -> set[str]:
     if state.intake:
         out.add(state.intake.product_name.lower())
         out.add(urlparse(state.intake.product_url).netloc.lower().replace("www.", "").split(".")[0])
-    return {x for x in out if x} | {"e2b", "modal", "daytona", "tenki"}
+    return {x for x in out if x} | ({"e2b", "modal", "daytona", "tenki"} if state.is_default_product(state.intake) else set())
 
 
 def discover_live(icp: ICP) -> int:

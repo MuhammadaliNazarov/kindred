@@ -42,8 +42,30 @@ def _first(name: str) -> str:
 
 
 SENDER_NAME = os.getenv("SENDER_NAME", "Ali")
-SENDER_ROLE = os.getenv("SENDER_ROLE", "GTM Lead, Tenki")
-SIGNATURE = f"Yours sincerely,\n{SENDER_NAME}\n{SENDER_ROLE}"
+def _sender_role() -> str:
+    return os.getenv("SENDER_ROLE") or f"GTM Lead, {state.intake.product_name if state.intake else 'Tenki'}"
+
+
+def _signature() -> str:
+    return f"Yours sincerely,\n{SENDER_NAME}\n{_sender_role()}"
+
+
+def _cta(cta: str) -> str:
+    line = bandit.CTAS.get(cta, "Worth a short look?")
+    if not state.is_default_product(state.intake) and "sandbox" in line:
+        line = f"Want the one-page {state.intake.product_name} overview for your situation?"
+    return line
+
+
+def _need() -> tuple[str, str]:
+    """(short need phrase, what the product does) for the deterministic copy — from the seller's own intake/analysis."""
+    if state.is_default_product(state.intake):
+        return "sandboxes", "gives you that as an API"
+    hints = (state.profile or {}).get("icp_hints") or []
+    desc = (state.intake.description if state.intake else "").strip().rstrip(".")
+    desc = re.split(r"(?<=[.!?])\s", desc)[0][:140]
+    need = re.sub(r"^(?:built for|made for|designed for|for|helps?|helping|serving|serves|supporting)\s+", "", hints[0], flags=re.I) if hints else "this"
+    return need[:60], (desc[0].lower() + desc[1:]) if desc else "can help"
 
 
 def _congrats(co, sig) -> str:
@@ -67,16 +89,18 @@ def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | N
         summ = sig.summary if len(sig.summary) <= 60 else sig.summary[:60].rsplit(" ", 1)[0].rstrip(",;:-—") + "…"  # cut at a word
         s1 = f"{co.name}: {summ}"
     else:
-        s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
+        s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}{_need()[0] if state.is_default_product(state.intake) else product} at {co.name}?"
     hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmintro_hook", "call")
-    cta_line = bandit.CTAS.get(cta, "Worth a short look?")
+    cta_line = _cta(cta)
     congrats = _congrats(co, sig)
     body1 = (f"Hi {_first(person.name)},\n\n{congrats} {warm if hook == 'warmintro_hook' else ''}{sig_line}\n\n"
-             f"A {sig.type.replace('_', ' ')} like that usually means someone has to build and run sandbox infra for agent code. {product} ({product_url}) gives you that as an API, "
-             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmintro_hook' else ''}{cta_line}\n\n{SIGNATURE}")
+             + (f"A {sig.type.replace('_', ' ')} like that usually means someone has to build and run sandbox infra for agent code. {product} ({product_url}) gives you that as an API, "
+                f"so {co.name} engineers stay on the product." if state.is_default_product(state.intake) else
+                f"A {sig.type.replace('_', ' ')} like that usually brings new work for {co.name}'s team. {product} ({product_url}): {_need()[1]}.")
+             + f"\n\n{warm if hook != 'warmintro_hook' else ''}{cta_line}\n\n{_signature()}")
     body2 = (f"Hi {_first(person.name)},\n\n{congrats} Following up on the {sig.type.replace('_', ' ')} from {sig.date}: "
-             f"if the sandbox work is already scoped, I can share how {product} would fit. Would a short plan help?\n\n{SIGNATURE}")
-    body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
+             f"if {'the sandbox work' if state.is_default_product(state.intake) else 'that work'} is already scoped, I can share how {product} would fit. Would a short plan help?\n\n{_signature()}")
+    body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). {'Building agent sandboxes?' if state.is_default_product(state.intake) else 'Is ' + product + ' useful there?'} Would love to compare notes."
     return {"touches": [
         {"step": 1, "channel": "email", "subject": s1, "body": body1},
         {"step": 2, "channel": "email", "subject": f"Re: {s1}", "body": body2},
@@ -188,10 +212,10 @@ def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
     product = state.intake.product_name if state.intake else "Tenki"
     product_url = state.intake.product_url if state.intake else "https://tenki.cloud"
     rules = PERSONA_RULES.get("c-level" if "c" in p.seniority.lower()[:1] else "ic" if p.seniority.lower() == "ic" else "director")
-    prompt = json.dumps({"sender": {"name": SENDER_NAME, "role": SENDER_ROLE}, "variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
+    prompt = json.dumps({"sender": {"name": SENDER_NAME, "role": _sender_role()}, "variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
                          "signal": {"type": sig.type, "summary": sig.summary, "date": sig.date, "source_url": sig.source.url, "quote": sig.source.quote},
                          "warm_path": [h.model_dump() for h in hops], "persona_rules": rules,
-                         "hook": bandit.HOOKS[hook], "cta": bandit.CTAS[cta]})
+                         "hook": bandit.HOOKS[hook], "cta": _cta(cta)})
     fb = lambda: _fallback(p, co, sig, hops, lead.variant, product, product_url, arm)
     data = llm.json_call("builder", COPY_SYSTEM, prompt, fb)[0] if use_llm else fb()
     ts = data.get("touches") if isinstance(data, dict) else None

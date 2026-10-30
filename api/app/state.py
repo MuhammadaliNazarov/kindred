@@ -18,9 +18,17 @@ people: dict[str, Person] = {}
 leads: dict[str, Lead] = {}
 touches: dict[str, Touch] = {}
 audit: list[AuditEvent] = []
+profile: Optional[dict] = None  # /analyze result for the current intake: {intake, evidence, summary, icp_hints, url}
 dropped_claims: list[dict] = []  # claims whose quote was not found at the URL (verified:false), for a "show dropped" view
 
 _ids = itertools.count(1)
+
+
+def is_default_product(i: Optional[Intake]) -> bool:
+    """True only for the built-in demo seller (Tenki). Anything else must never get Tenki ICP/keywords/copy."""
+    if i is None:
+        return True
+    return "tenki" in (i.product_name or "").lower() or "tenki.cloud" in (i.product_url or "").lower()
 
 
 def new_id(prefix: str) -> str:

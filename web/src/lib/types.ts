@@ -15,7 +15,11 @@ export type Intake = {
   acv_usd: number | null;
   lost_deal?: string;
   past_employers?: string[]; // founder's own history → (me)-[:previously_employed_at] for warm paths
+  evidence?: Source[]; // pages /analyze read (website, LinkedIn, socials); the ICP agent cites them
+  icp_hints?: string[]; // segments /analyze suggests targeting
 };
+
+export type AnalyzeResult = { intake: Partial<Intake>; evidence: Source[]; summary: string; icp_hints: string[] };
 
 export type ICP = {
   industries: Scored<{ name: string; naics: string }>[];

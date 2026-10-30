@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sse_starlette.sse import EventSourceResponse  # noqa: E402
 
 from . import rl_api  # noqa: E402
-from . import bandit, billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking, verifier  # noqa: E402
+from . import analyze, bandit, billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking, verifier  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from .models import (AuditEvent, Company, Credits, ExpansionSegment, ExpansionUpdate, GraphData, ICP, Intake, Lead,  # noqa: E402
                      MoveBody, Person, ReviewBody, ThinkingStep, Touch, WarmPath)
@@ -65,6 +65,28 @@ def health():
         "notes": {"llm": llm.detail()},  # e.g. "anthropic: 401 AuthenticationError" when the key was rejected and we fell through
         "counts": {"companies": len(state.companies), "people": len(state.people), "leads": len(state.leads), "touches": len(state.touches)},
     }
+
+
+# ---------- company understanding (before ICP) ----------
+class AnalyzeBody(BaseModel):
+    url: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    refresh: bool = False  # bypass the per-URL cache in data/cache/
+    build_icp: bool = False  # also run the ICP on the analysed intake (same as POST /intake with the returned intake)
+
+
+@app.post("/analyze", dependencies=guard)
+def post_analyze(body: AnalyzeBody):
+    """Website (homepage + up to 5 key pages) + Tavily searches → evidence pack → filled Intake + icp_hints.
+    Returns {intake, evidence:[Source], summary, icp_hints} (+ icp/expansions when build_icp)."""
+    if not body.url.strip():
+        raise HTTPException(422, "url is required")
+    out = analyze.run(body.url, body.name, body.description, refresh=body.refresh)
+    res = {k: out[k] for k in ("intake", "evidence", "summary", "icp_hints")}
+    if body.build_icp:
+        res.update(post_intake(Intake.model_validate(out["intake"])))
+    return res
 
 
 # ---------- intake / ICP ----------
