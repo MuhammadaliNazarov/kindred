@@ -1,6 +1,6 @@
 # Kindred: 2:30 demo script
 
-App: https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · Code: https://github.com/AliNazaarov/warmpath
+App: https://e6ohax5xwx6jbzz5mu2pjvx3v2zkimtq--u6faat.us.sb.tenki.sh · Code: https://github.com/AliNazaarov/kindred
 
 ## The product in one breath
 

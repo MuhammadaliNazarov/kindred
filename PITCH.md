@@ -5,6 +5,37 @@
 Written 30 Oct 2026 for the "Startup viability" line (15%) of the judging matrix in DESIGN.md §1. Numbers here are the single
 source of truth for the README, the demo and Q&A. Prices in the product (billing.py, CreditsMeter) must match §3.
 
+## 0. Why Kindred wins a post-training room — and RL: every human decision trains the model
+
+Kindred is a GTM agent that gets better from its own workflow: **the gate that keeps it honest is also the reward that trains it.**
+
+| Piece | What it is | Where |
+|---|---|---|
+| **Reward (RLVR)** | A rule-based verifier, max 5.5: company named, signal cited, question CTA, 30–90 words, every claim sourced, opens with congratulations, signed with name and role, with penalties for outcome guarantees and off-domain links. The same function gates the human approval queue **and** is the RL reward. | `api/app/verifier.py` |
+| **Human feedback into reward rules** | A reviewer (Ali) asked for "congratulations" openers and a name and role sign-off. These became two new verifier checks. | `verifier.py`, `outreach.py` |
+| **RL environment** | Gym/OpenEnv style: `POST /env/reset` gives a real lead plus its cited signal; `POST /env/step {draft}` returns the reward and per-check results. | `api/rl/outreach_env.py`, `api/app/rl_api.py` |
+| **Preference dataset (DPO)** | Every human **edit** becomes *original = rejected, edit = chosen*, and every **reject** becomes a pair too; verifier score gaps add synthetic pairs, labelled as such. Download it with `GET /export/preferences`. | `api/app/rl_api.py` |
+| **GRPO training** | TRL `GRPOTrainer`, SmolLM2-135M-Instruct + LoRA, 4 generations per prompt, reward = verifier score, on **Tenki CPU sandboxes**. | `api/rl/train_grpo_cpu.py` |
+| **DPO training** | TRL `DPOTrainer` on the exported human and verifier pairs, also on Tenki. | `api/rl/train_dpo_cpu.py` |
+| **Evals** | 30 held-out leads from companies never used in training; base vs trained on each check. | `api/rl/eval.py`, the Model · RL tab |
+| **Harbor dataset** | 20 outreach tasks in Harbor format, with a per-check reward in `reward.json`. The oracle scored 2/2 at 1.0 in a Tenki sandbox. Wired to the harbor-cookbook `harbor-rl` recipe (Tinker). | `harbor/` |
+| **Learned inference-time policy** | A Thompson-sampling bandit over message hooks and CTAs, with replies as the reward. | `api/app/bandit.py` |
+
+### Results (30 Oct 2026, 30 held-out leads)
+
+| Run | Avg reward | Cites signal | No banned claims | Length OK |
+|---|---|---|---|---|
+| Base SmolLM2-135M | 0.658 | 100% | 96.7% | 46.7% |
+| **GRPO run 1** (20 steps, LR 2e-5, Tenki) | **0.675** | 100% | 96.7% | 50.0% |
+| GRPO run 2 (60 steps, LR 2e-4, Tenki) | 0.683 | 90.0% ↓ | 86.7% ↓ | 60.0% |
+| DPO (4 human + 19 verifier pairs, Tenki) | 0.675 | 100% | 93.3% | 50.0% |
+
+**What we learned:**
+- **Run 2 is reward hacking.** Pushed harder, the model raised its total score through length while getting sloppier on citations and claims. The per-check evals caught it, which is why we ship run 1 and keep the verifier as a hard gate.
+- **DPO only learns what reviewers show it.** With 4 human pairs it improved length and style but not the no-guarantees rule. More reviews, especially rejects of overclaiming drafts, fix that.
+- **Honest scale.** It's a 135M model, 20–60 steps, on CPUs. The loop is real; the gains are small and grow with reviews and a GPU.
+
+
 ## 1. Problem, with evidence
 
 A founder with no sales team has two bad options. Buy a lead database and spam it, or pay an "AI SDR" that makes things up.
