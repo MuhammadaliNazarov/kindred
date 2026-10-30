@@ -382,12 +382,12 @@ export default function IntakePage() {
       >
         <label className="flex flex-1 flex-col gap-1 text-[12px] text-neutral-600">
           Your website
-          <input value={quickUrl} onChange={(e) => setQuickUrl(e.target.value)} placeholder="expedite.now"
+          <input value={quickUrl} onChange={(e) => setQuickUrl(e.target.value)} placeholder="yourcompany.com"
             className="h-11 rounded-[12px] bg-white px-3.5 text-[14px] text-neutral-900 shadow-[inset_0_0_0_1px_#8a93a8] outline-none focus:shadow-[inset_0_0_0_2px_#2f5bff]" />
         </label>
         <label className="flex flex-[2] flex-col gap-1 text-[12px] text-neutral-600">
           Who you sell to, in one sentence (optional)
-          <input value={quickAbout} onChange={(e) => setQuickAbout(e.target.value)} placeholder="Founders building companies across borders"
+          <input value={quickAbout} onChange={(e) => setQuickAbout(e.target.value)} placeholder="e.g. Seed-stage SaaS founders in Europe"
             className="h-11 rounded-[12px] bg-white px-3.5 text-[14px] text-neutral-900 shadow-[inset_0_0_0_1px_#8a93a8] outline-none focus:shadow-[inset_0_0_0_2px_#2f5bff]" />
         </label>
         <button type="submit" disabled={analyzing || !quickUrl.trim()}
@@ -488,7 +488,7 @@ export default function IntakePage() {
       {/* Structured form */}
       <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
         <div className="glass-band flex h-12 shrink-0 items-center justify-between px-5">
-          <div className="flex items-baseline gap-2"><h2 className="k-h3">What Kindred understood</h2><span className="text-[12px] text-neutral-500">fills in as you chat · edit anything</span></div>
+          <div className="flex items-baseline gap-2"><h2 className="k-h3">What Kindred understood</h2><span className="text-[12px] text-neutral-500">fills in from your website · edit anything</span></div>
           <span className="text-[12px] tabular-nums text-neutral-400">{5 - missing.length} of 5 complete</span>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-2 [&>fieldset+fieldset]:shadow-[inset_0_1px_0_#eef1f6]">
