@@ -74,7 +74,7 @@ def require_human_approval(room_id: str) -> dict[str, str]:
 # --------------------------------------------------------------------------
 FORBIDDEN = [re.compile(p) for p in (r"^/touches/[^/]+/send$", r"^/.*send.*$", r"^/.*schema.*$", r"^/graph/(create|drop|alter).*$")]
 ALLOWED = {
-    "planner": [("POST", r"^/intake$"), ("POST", r"^/discover$"), ("GET", r"^/credits$")],
+    "planner": [("POST", r"^/intake$"), ("POST", r"^/discover$"), ("GET", r"^/leads$"), ("GET", r"^/companies$"), ("GET", r"^/credits$")],
     "builder": [("POST", r"^/leads/[^/]+/enrich$"), ("POST", r"^/leads/[^/]+/draft$"), ("GET", r"^/credits$")],
     "reviewer": [("GET", r"^/touches$"), ("GET", r"^/audit$")],
     "security": [("GET", r"^/touches$"), ("POST", r"^/touches/[^/]+/review$"), ("GET", r"^/audit$")],
@@ -121,14 +121,35 @@ async def intake(i: IntakeInput) -> str:
 
 
 class DiscoverInput(BaseModel):
-    """Run discovery (POST /discover): find scored, cited accounts + buyers. Returns leads with tier A/B/C."""
-    limit: int = Field(default=10, description="How many leads to ask for")
-    tier: str = Field(default="A", description="Minimum tier to keep")
+    """Run discovery (POST /discover): search, validate every claim against its source, score + tier accounts. Returns a summary; call leads next for ids."""
 
 
-async def discover(i: DiscoverInput) -> str:
-    code, data = await api("planner", "POST", "/discover", {"limit": i.limit, "tier": i.tier})
+async def discover() -> str:
+    code, data = await api("planner", "POST", "/discover")
     return f"HTTP {code}: {_j(data)}"
+
+
+class LeadsInput(BaseModel):
+    """List leads (GET /leads joined with GET /companies): lead_id, company, tier A/B/C, score, stage. Filter by tier."""
+    tier: str = Field(default="A", description="A, B, C or all")
+    limit: int = Field(default=10)
+
+
+async def leads(i: LeadsInput) -> str:
+    c1, ls = await api("planner", "GET", "/leads")
+    c2, cos = await api("planner", "GET", "/companies")
+    if c1 != 200 or c2 != 200:
+        return f"HTTP {c1}/{c2}: {_j(ls)} {_j(cos)}"
+    by_id = {c["id"]: c for c in cos if isinstance(c, dict)}
+    rows = []
+    for l in ls if isinstance(ls, list) else []:
+        co = by_id.get(l.get("company_id"), {})
+        if i.tier != "all" and co.get("tier") != i.tier:
+            continue
+        rows.append({"lead_id": l["id"], "company": co.get("name"), "tier": co.get("tier"), "score": co.get("score"), "stage": l.get("stage"),
+                     "signal": (co.get("signals") or [{}])[0].get("summary")})
+    rows.sort(key=lambda r: -(r["score"] or 0))
+    return f"HTTP 200: {_j(rows[: i.limit])}"
 
 
 class CreditsInput(BaseModel):
@@ -153,23 +174,25 @@ async def enrich(i: EnrichInput) -> str:
 
 
 class DraftInput(BaseModel):
-    """Draft the 3-touch outreach sequence for a lead (POST /leads/{id}/draft)."""
+    """Draft the 3-touch outreach sequence for a lead (POST /leads/{id}/draft). Returns the touches with ids."""
     lead_id: str
-    variant: str = Field(default="A", description="A or B")
 
 
 async def draft(i: DraftInput) -> str:
-    code, data = await api("builder", "POST", f"/leads/{i.lead_id}/draft", {"variant": i.variant})
+    code, data = await api("builder", "POST", f"/leads/{i.lead_id}/draft")
     return f"HTTP {code}: {_j(data)}"
 
 
 class TouchesInput(BaseModel):
-    """List drafted touches with their body, cited signal and review/security verdicts (GET /touches)."""
-    status: str = Field(default="draft", description="draft | approved | rejected | sent | all")
+    """List drafted touches with body, cited signal and review/security verdicts (GET /touches)."""
+    lead_id: str | None = Field(default=None, description="Only this lead's touches")
+    status: str = Field(default="draft", description="draft | approved | edited | rejected | sent | all")
 
 
 async def touches(i: TouchesInput) -> str:
-    code, data = await api("reviewer", "GET", "/touches", params=None if i.status == "all" else {"status": i.status})
+    code, data = await api("reviewer", "GET", "/touches", params={"lead_id": i.lead_id} if i.lead_id else None)
+    if code == 200 and isinstance(data, list) and i.status != "all":
+        data = [t for t in data if t.get("status") == i.status]
     return f"HTTP {code}: {_j(data, 12000)}"
 
 
@@ -214,10 +237,10 @@ SPECS: dict[str, dict[str, Any]] = {
         "mention": "@Builder",
         "prompt": COMMON + """
 Role: Planner/Architect. When the human asks for buyers + outreach:
-1) call intake (Tenki), 2) call discover, 3) call credits.
+1) call intake (Tenki), 2) call discover, 3) call leads (tier A), 4) call credits.
 Post a 3-5 line milestone plan (discover -> enrich -> draft -> review -> security -> human approve)
 with the lead ids found and the credit balance, then @mention Builder with the exact lead ids to enrich and draft.""",
-        "tools": [(IntakeInput, intake), (DiscoverInput, discover), (CreditsInput, credits)],
+        "tools": [(IntakeInput, intake), (DiscoverInput, discover), (LeadsInput, leads), (CreditsInput, credits)],
     },
     "builder": {
         "mention": "@Reviewer",
@@ -254,20 +277,22 @@ If the tool returns REFUSED, relay it; never argue with it.""",
 # --------------------------------------------------------------------------
 def build_adapter(role: str):
     from band import Emit
-    from band.adapters import AnthropicAdapter
+    from band.adapters import AnthropicAdapter, AnthropicAdapterConfig
 
     class WarmPathAdapter(AnthropicAdapter):
         """AnthropicAdapter + human-message ledger (HITL) + a visible cost line per turn."""
 
-        async def on_message(self, msg, tools, history, participants_msg, contacts_msg, *, is_session_bootstrap, room_id):
+        async def on_turn(self, messages, tools, history, participants_msg, contacts_msg, *, is_session_bootstrap, room_id):
             if is_session_bootstrap and history:
-                for h in history:  # prime the ledger with earlier human messages in this room
-                    if h.get("role") == "user" and h.get("sender_type", "") != "Agent" and isinstance(h.get("content"), str):
-                        record_human_message(room_id, h.get("sender_name") or "human", h["content"])
-            if (msg.sender_type or "") != "Agent":
-                record_human_message(room_id, msg.sender_name or msg.sender_id, msg.content)
+                for h in history:  # prime the ledger: converted history keeps humans as role=user text
+                    c = h.get("content")
+                    if h.get("role") == "user" and isinstance(c, str) and not c.startswith("[SYSTEM"):
+                        record_human_message(room_id, "human(history)", c)
+            for msg in messages:
+                if (msg.sender_type or "") != "Agent":
+                    record_human_message(room_id, msg.sender_name or msg.sender_id, msg.content)
             CURRENT_ROOM.set(room_id)
-            await super().on_message(msg, tools, history, participants_msg, contacts_msg, is_session_bootstrap=is_session_bootstrap, room_id=room_id)
+            await super().on_turn(messages, tools, history, participants_msg, contacts_msg, is_session_bootstrap=is_session_bootstrap, room_id=room_id)
 
         async def emit_usage(self, tools, usage):
             await super().emit_usage(tools, usage)  # Emit.USAGE -> band_usage task event for the dashboard
@@ -279,7 +304,11 @@ def build_adapter(role: str):
             except Exception:
                 pass
 
-    return WarmPathAdapter(model=CLAUDE_MODEL, prompt=SPECS[role]["prompt"], additional_tools=SPECS[role]["tools"], emit=Emit.TOOL_CALLS | Emit.USAGE)
+    return WarmPathAdapter(
+        AnthropicAdapterConfig(model=CLAUDE_MODEL, custom_section=SPECS[role]["prompt"], max_tokens=4096),
+        additional_tools=SPECS[role]["tools"],
+        emit=Emit.TOOL_CALLS | Emit.USAGE,
+    )
 
 
 async def run_live(roles: list[str]) -> None:
@@ -300,7 +329,12 @@ async def run_live(roles: list[str]) -> None:
 # --------------------------------------------------------------------------
 def _stub_transport() -> httpx.MockTransport:
     """In-process stand-in for the WarmPath API when localhost:8000 is down."""
-    leads = {f"lead_{n}": {"id": f"lead_{n}", "company": c, "tier": "A", "score": 80 + n} for n, c in enumerate(["Cognition", "Factory", "Sierra", "Decagon", "Harvey", "Hebbia", "Imbue", "Reflection", "Magic", "Poolside"], 1)}
+    names = ["Cognition", "Factory", "Sierra", "Decagon", "Harvey", "Hebbia", "Imbue", "Reflection", "Magic", "Poolside"]
+    companies = {f"co_{n}": {"id": f"co_{n}", "name": c, "domain": f"{c.lower()}.ai", "tier": "A" if n <= 8 else "B", "score": 90 - n,
+                             "signals": [{"type": "job_post", "summary": "Hiring Senior Infrastructure Engineer", "date": "2026-10-27",
+                                          "source": {"url": f"https://jobs.example.com/{c.lower()}/infra", "quote": "Senior Infrastructure Engineer", "verified": True}}]}
+                 for n, c in enumerate(names, 1)}
+    leads = {f"lead_{n}": {"id": f"lead_{n}", "person_id": f"p_{n}", "company_id": f"co_{n}", "stage": "new", "owner": "ai", "variant": "A", "updated_at": "2026-10-30"} for n in range(1, 11)}
     touches_db: dict[str, dict] = {}
     credits_db = {"balance": 12.0, "granted": 20.0, "used": {"lead_enriched": 0, "outreach_sent": 0, "graph_query": 0}, "blocked": False}
     audit_log: list[dict] = []
@@ -310,7 +344,11 @@ def _stub_transport() -> httpx.MockTransport:
         if m == "POST" and p == "/intake":
             return httpx.Response(200, json={"ok": True, "icp": {"industries": ["AI agent infra"], "personas": ["Head of Infra", "CTO"]}})
         if m == "POST" and p == "/discover":
-            return httpx.Response(200, json={"leads": list(leads.values())})
+            return httpx.Response(200, json={"added": 10, "total": 10, "tiers": {"A": 8, "B": 2, "C": 0}, "dropped": 1, "hiring": 7})
+        if m == "GET" and p == "/leads":
+            return httpx.Response(200, json=list(leads.values()))
+        if m == "GET" and p == "/companies":
+            return httpx.Response(200, json=list(companies.values()))
         if m == "GET" and p == "/credits":
             return httpx.Response(200, json=credits_db)
         if m == "POST" and p.endswith("/enrich"):
@@ -322,15 +360,16 @@ def _stub_transport() -> httpx.MockTransport:
             return httpx.Response(200, json={"email": "cto@example.com", "email_status": "valid", "provider": "seed"})
         if m == "POST" and p.endswith("/draft"):
             lid = p.split("/")[2]
-            co = leads.get(lid, {}).get("company", lid)
+            co = companies.get(leads.get(lid, {}).get("company_id", ""), {}).get("name", lid)
             tid = f"touch_{lid}_1"
             touches_db[tid] = {"id": tid, "lead_id": lid, "step": 1, "channel": "email", "subject": f"{co} hiring infra engineers",
                                "body": f"Saw {co} is hiring a Senior Infra Engineer (posted this week). Tenki gives agent sandboxes without the platform build. Worth 15 min? https://tenki.dev",
-                               "signal": {"type": "job_post", "quote": "Senior Infrastructure Engineer", "url": f"https://jobs.example.com/{co.lower()}/infra"},
+                               "signal_id": "sig_1", "variant": "A",
                                "status": "draft", "review": {"verdict": "pass", "notes": "claim matches quote"}, "security": {"verdict": "pass", "notes": "links: tenki.dev only"}}
-            return httpx.Response(200, json={"touches": [touches_db[tid]]})
+            return httpx.Response(200, json=[touches_db[tid]])
         if m == "GET" and p == "/touches":
-            return httpx.Response(200, json=list(touches_db.values()))
+            lid = req.url.params.get("lead_id")
+            return httpx.Response(200, json=[t for t in touches_db.values() if not lid or t["lead_id"] == lid])
         if m == "POST" and p.endswith("/review"):
             tid = p.split("/")[2]
             body = json.loads(req.content or b"{}")
@@ -370,23 +409,22 @@ async def run_dry(out_of_credits: bool = False) -> None:
 
     # Planner
     _say("Planner", "tool intake -> " + (await intake(IntakeInput()))[:140])
-    disc = await discover(DiscoverInput())
+    disc = await discover()
+    _say("Planner", "tool discover -> " + disc[:140])
+    ls = await leads(LeadsInput())
     cr = await credits()
-    m = re.search(r"HTTP \d+: (.*)", disc, re.S)
+    m = re.search(r"HTTP \d+: (.*)", ls, re.S)
     try:
-        data = json.loads(m.group(1)) if m else {}
+        items = json.loads(m.group(1)) if m else []
     except ValueError:
-        data = {}
-    items = data.get("leads") if isinstance(data, dict) else data
-    items = items if isinstance(items, list) else []
-    lead_ids = [str(x.get("id") or x.get("lead_id")) for x in items if isinstance(x, dict)][:10]
-    if out_of_credits and not up:
-        await api("planner", "GET", "/credits")  # no-op, keep allow-list honest
-    _say("Planner", f"Plan: discover -> enrich -> draft -> review -> security -> human approve. {len(lead_ids)} Tier-A leads: {', '.join(lead_ids)}. Credits: {cr[:80]}")
+        items = []
+    lead_ids = [str(x["lead_id"]) for x in items if isinstance(x, dict)][:10]
+    _say("Planner", f"Plan: discover -> enrich -> draft -> review -> security -> human approve. {len(lead_ids)} Tier-A leads: {', '.join(lead_ids)}. Credits: {cr[10:90]}")
     _say("Planner", f"@Builder enrich + draft these leads: {', '.join(lead_ids)}")
 
     # Builder
     touch_ids: list[str] = []
+    paused = False
     for i, lid in enumerate(lead_ids):
         if out_of_credits and i == 3 and not up:
             # burn the stub wallet to show the Flexprice gate
@@ -396,10 +434,18 @@ async def run_dry(out_of_credits: bool = False) -> None:
         e = await enrich(EnrichInput(lead_id=lid))
         if e.startswith("HTTP 402"):
             _say("Builder", "Enrichment paused — out of credits (Flexprice). @human top up the wallet to continue?")
+            paused = True
             break
         d = await draft(DraftInput(lead_id=lid))
-        touch_ids += re.findall(r'"id":\s*"(touch_[^"]+)"', d) or re.findall(r'"id":\s*"([^"]+)"', d)[:1]
+        md = re.search(r"HTTP 200: (.*)", d, re.S)
+        try:
+            touch_ids += [t["id"] for t in json.loads(md.group(1)) if isinstance(t, dict) and "id" in t] if md else []
+        except ValueError:
+            pass
         _say("Builder", f"{lid}: enrich {e[:60]!r} · draft -> {d[:70]!r}")
+    if paused:
+        print("\n=== paused: waiting for the human to top up credits (POST /credits/reset) ===")
+        return
     _say("Builder", f"@Reviewer {len(touch_ids)} touches drafted: {', '.join(touch_ids)}")
 
     # Reviewer

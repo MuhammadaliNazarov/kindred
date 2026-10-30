@@ -85,7 +85,16 @@ export function postIntake(intake: Intake): Promise<ICP> {
     audit({ actor: "rep", action: "intake.submitted", detail: `Intake for ${intake.product_name}` });
     audit({ actor: "ai", agent: "icp", action: "icp.generated", detail: "ICP regenerated from intake" });
     return db.icp;
-  }, post(intake));
+  }, post(intake)).then((r) => {
+    // The API returns {icp, expansions}; the seed path returns the ICP itself.
+    const res = r as unknown as { icp?: ICP; expansions?: ExpansionSegment[] };
+    if (res && res.icp) {
+      db.icp = res.icp;
+      if (res.expansions) db.expansions = res.expansions;
+      return res.icp;
+    }
+    return r;
+  });
 }
 
 export const getICP = () => call<ICP>("/icp", () => db.icp);
@@ -209,7 +218,7 @@ export function reviewTouch(id: string, action: "approve" | "edit" | "reject", b
     audit({ actor: "rep", action: `touch.${action === "approve" ? "approved" : action === "edit" ? "edited" : "rejected"}`, lead_id: t.lead_id, detail: `Touch ${t.step} (${t.channel}, variant ${t.variant})` });
     return t;
   };
-  return call<Touch | null>(`/touches/${id}/review`, local, post({ action, body }));
+  return call<Touch | null>(`/touches/${id}/review`, local, post({ action, body, actor: "rep" }));
 }
 
 export const getAudit = () => call<AuditEvent[]>("/audit", () => db.audit);
@@ -249,7 +258,15 @@ function computeAnalytics(): Analytics {
   };
 }
 
-export const getAnalytics = () => call<Analytics>("/analytics", computeAnalytics);
+export const getAnalytics = () =>
+  call<Analytics>("/analytics", computeAnalytics).then((a) => ({
+    ...a,
+    // API variants carry {sent, contacted, replied, reply_rate}; there is no open tracking, so use contacted as "opened".
+    variants: a.variants.map((v) => {
+      const x = v as typeof v & { contacted?: number };
+      return { ...v, opened: v.opened ?? x.contacted ?? 0 };
+    }),
+  }));
 
 // ---------- Agent Thinking stream ----------
 export function streamThinking(onStep: (s: ThinkingStep) => void): () => void {

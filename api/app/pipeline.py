@@ -33,9 +33,28 @@ def move(lead_id: str, stage: str, actor: str, agent: str | None = None, why: st
     lead.stage, lead.owner, lead.updated_at = stage, actor, thinking.now()
     if stage == "replied":
         graph.add_replied(lead.person_id)
+    _bandit_reward(lead, stage)
     state.log(actor, "stage_move", f"{old} → {stage}{(' · ' + why) if why else ''}", agent=agent, lead_id=lead_id)
     thinking.emit(agent or "rep", "handoff", f"Lead {lead_id}: {old} → {stage} by {actor}")
     return lead
+
+
+def lead_arm(lead: Lead) -> str | None:
+    ts = [t for t in state.touches.values() if t.lead_id == lead.id and t.arm]
+    sent = [t for t in ts if t.status == "sent"]
+    return (sent or ts)[0].arm if (sent or ts) else None
+
+
+def _bandit_reward(lead: Lead, stage: str) -> None:
+    """Reply = reward 1; closed_lost after a send without a reply = reward 0."""
+    from . import bandit
+    arm = lead_arm(lead)
+    if not arm:
+        return
+    if stage in ("replied", "meeting", "closed_won"):
+        bandit.update(arm, 1, lead_id=lead.id)
+    elif stage == "closed_lost" and any(t.lead_id == lead.id and t.status == "sent" for t in state.touches.values()):
+        bandit.update(arm, 0, lead_id=lead.id)
 
 
 def _funnel(group: dict[str, list[Lead]], key: str) -> list[dict]:

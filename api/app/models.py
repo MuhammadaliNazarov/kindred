@@ -154,6 +154,9 @@ class Review(BaseModel):
     verdict: Literal["pass", "fix", "fail"]
     notes: str
     agent: Literal["reviewer"] = "reviewer"
+    score: Optional[float] = None  # verifier score (same function = GRPO reward)
+    max_score: Optional[float] = None
+    checks: Optional[list[dict]] = None  # [{name, pass, detail?}]
 
 
 class Security(BaseModel):
@@ -171,6 +174,7 @@ class Touch(BaseModel):
     body: str
     signal_id: str
     variant: Literal["A", "B"]
+    arm: Optional[str] = None  # bandit arm id, e.g. warmpath_hook__doc
     status: Literal["draft", "approved", "edited", "rejected", "sent"]
     review: Review
     security: Security
