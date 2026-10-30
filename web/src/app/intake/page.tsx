@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { ArrowUp, Check, Loader2, Sparkles } from "lucide-react";
+import { buttonClass } from "@/components/ui/Button";
+import { ArrowRight, ArrowUp, Check, Loader2, Sparkles } from "lucide-react";
 import type { Intake } from "@/lib/types";
 import { postIntake } from "@/lib/api";
 import { seedIntake } from "@/lib/seed";
@@ -179,32 +180,55 @@ export default function IntakePage() {
   const set = <K extends keyof Intake>(k: K, v: Intake[K]) => setForm((f) => ({ ...f, [k]: v }));
   const list = (v: string) => v.split(",").map((s) => s.trim()).filter(Boolean);
 
+  const basicsMissing = missing.includes("basics");
+
   return (
-    <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      {/* Chat */}
-      <section className="flex min-h-0 flex-col border-r border-neutral-200">
-        <header className="flex items-end justify-between gap-4 border-b border-neutral-200 px-8 pb-6 pt-8">
-          <div>
-            <h1 className="k-hero">
-              Tell us what you <span className="k-accent">sell</span>
-            </h1>
-            <p className="k-sub">The agent asks for what is missing and fills the form as you answer.</p>
-          </div>
+    <div className="flex h-[calc(100vh-72px)] min-h-[640px] flex-col px-8 pb-6 pt-8">
+      <header className="mb-8 flex items-end justify-between gap-8">
+        <div>
+          <h1 className="k-hero">
+            Tell us what you <span className="k-accent">sell</span>
+          </h1>
+          <p className="k-sub">The agent asks for what is missing and fills the form as you answer.</p>
+        </div>
+        {/* One primary at a time: the demo until the basics exist, then Generate ICP. */}
+        <div className="flex shrink-0 items-center gap-3">
+          <span id="intake-progress" className="text-[12px] tabular-nums text-neutral-400">
+            {5 - missing.length} of 5 sections
+          </span>
           <button
             onClick={runDemo}
             disabled={demoRunning}
-            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-neutral-200 px-2.5 py-1 text-[12px] text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            className={clsx(buttonClass(basicsMissing ? "primary" : "secondary"), basicsMissing && !demoRunning && "wp-pulse-accent")}
           >
-            <Sparkles className="h-3.5 w-3.5" /> Use Tenki demo
+            <Sparkles className="h-4 w-4" /> Use Tenki demo
           </button>
-        </header>
-        <div className="flex-1 space-y-3 overflow-y-auto px-6 py-5">
+          <button
+            onClick={generate}
+            disabled={busy || basicsMissing}
+            aria-describedby="intake-progress"
+            title={basicsMissing ? "Fill in the product basics first" : undefined}
+            className={buttonClass(basicsMissing ? "secondary" : "primary")}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Generate ICP
+          </button>
+        </div>
+      </header>
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {/* Chat */}
+      <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
+        <div className="glass-band flex h-12 shrink-0 items-center px-5">
+          <h2 className="k-h3">Conversation</h2>
+        </div>
+        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
           {msgs.map((m, i) => (
             <div key={i} className={clsx("wp-fade-in flex", m.role === "user" ? "justify-end" : "justify-start")}>
               <div
                 className={clsx(
-                  "max-w-[85%] rounded-lg px-3 py-2 text-[13px] leading-relaxed",
-                  m.role === "user" ? "bg-accent text-white" : "border border-neutral-200 bg-surface text-neutral-800",
+                  "max-w-[85%] rounded-[18px] px-3.5 py-2 text-[13px] leading-relaxed",
+                  m.role === "user" ? "rounded-br-md bg-accent text-white" : "rounded-bl-md bg-[#f1f3f8] text-neutral-900",
                 )}
               >
                 {m.text}
@@ -214,14 +238,14 @@ export default function IntakePage() {
           <div ref={chatEnd} />
         </div>
         <form
-          className="border-t border-neutral-200 p-3"
+          className="p-3"
           onSubmit={(e) => {
             e.preventDefault();
             answer(input);
             setInput("");
           }}
         >
-          <div className="flex items-end gap-2 rounded-lg border border-neutral-200 px-3 py-2 focus-within:border-neutral-400">
+          <div className="flex items-end gap-2 rounded-[18px] bg-white px-3.5 py-2.5 shadow-[inset_0_0_0_1px_#8a93a8] focus-within:shadow-[inset_0_0_0_2px_#2f5bff]">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -233,10 +257,11 @@ export default function IntakePage() {
                 }
               }}
               rows={2}
+              aria-label="Your answer"
               placeholder={pending ? "Type your answer…" : "All set. Edit the form or generate the ICP."}
               className="flex-1 resize-none bg-transparent text-[13px] outline-none placeholder:text-neutral-400"
             />
-            <button type="submit" disabled={!input.trim() || !pending} className="rounded-md bg-accent p-1.5 text-white disabled:opacity-30" aria-label="Send">
+            <button type="submit" disabled={!input.trim() || !pending} className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white disabled:opacity-30" aria-label="Send">
               <ArrowUp className="h-4 w-4" />
             </button>
           </div>
@@ -244,24 +269,12 @@ export default function IntakePage() {
       </section>
 
       {/* Structured form */}
-      <section className="flex min-h-0 flex-col">
-        <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-          <div>
-            <h2 className="text-[20px]">Intake</h2>
-            <p className="text-[12px] tabular-nums text-neutral-500">
-              {5 - missing.length} of 5 sections complete
-            </p>
-          </div>
-          <button
-            onClick={generate}
-            disabled={busy || missing.includes("basics")}
-            className="flex items-center gap-2 rounded-md bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Generate ICP
-          </button>
-        </header>
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+      <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
+        <div className="glass-band flex h-12 shrink-0 items-center justify-between px-5">
+          <h2 className="k-h3">Intake</h2>
+          <span className="text-[12px] tabular-nums text-neutral-400">{5 - missing.length} of 5 complete</span>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-2 [&>fieldset+fieldset]:shadow-[inset_0_1px_0_#eef1f6]">
           <Group title="Product" done={!missing.includes("basics")} flash={flash === "basics"}>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Name" value={form.product_name} onChange={(v) => set("product_name", v)} />
@@ -295,14 +308,16 @@ export default function IntakePage() {
           </Group>
         </div>
       </section>
+      </div>
     </div>
   );
 }
 
 function Group({ title, done, flash, hint, children }: { title: string; done: boolean; flash: boolean; hint?: string; children: React.ReactNode }) {
   return (
-    <fieldset className={clsx("rounded-lg border p-4 transition-colors duration-500", flash ? "border-emerald-400 bg-emerald-50/40" : "border-neutral-200")}>
-      <legend className="flex items-center gap-2 px-1 text-[12px] font-medium">
+    <fieldset className={clsx("-mx-2 rounded-[16px] px-2 py-4 transition-colors duration-500", flash && "bg-emerald-50")}>
+      <legend className="sr-only">{title}</legend>
+      <div aria-hidden className="mb-3 flex items-center gap-2 text-[13px] font-medium text-neutral-950">
         <span
           className={clsx(
             "flex h-4 w-4 items-center justify-center rounded-full border",
@@ -313,7 +328,7 @@ function Group({ title, done, flash, hint, children }: { title: string; done: bo
         </span>
         {title}
         {hint && <span className="font-normal text-neutral-400">· {hint}</span>}
-      </legend>
+      </div>
       <div className="space-y-3">{children}</div>
     </fieldset>
   );
@@ -321,12 +336,12 @@ function Group({ title, done, flash, hint, children }: { title: string; done: bo
 
 function Field({ label, value, onChange, area, mono }: { label: string; value: string; onChange: (v: string) => void; area?: boolean; mono?: boolean }) {
   const cls = clsx(
-    "w-full rounded-md border border-neutral-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-neutral-400",
+    "w-full rounded-[10px] border border-transparent bg-white px-3 py-2 text-[13px] text-neutral-950 shadow-[inset_0_0_0_1px_#8a93a8] outline-none focus-visible:border-[#2f5bff] focus:shadow-[inset_0_0_0_1px_#6f8dff]",
     mono && "font-mono text-[12px] tabular-nums",
   );
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] tracking-wide text-neutral-500">{label}</span>
+      <span className="k-label mb-1.5 block">{label}</span>
       {area ? (
         <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)} className={clsx(cls, "resize-none")} />
       ) : (

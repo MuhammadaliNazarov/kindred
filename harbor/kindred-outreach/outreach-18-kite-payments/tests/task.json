@@ -1,0 +1,17 @@
+{
+ "company": "Kite Payments",
+ "domain": "kite.example.com",
+ "buyer_role": "Head of Platform",
+ "person": null,
+ "signal": "Launched an AI agent that executes customer scripts",
+ "quote": "our agent now executes customer scripts on demand",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "kite.example.com"
+ ],
+ "source": "fallback"
+}

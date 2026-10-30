@@ -1,0 +1,17 @@
+{
+ "company": "Delta Notebooks",
+ "domain": "deltanb.example.com",
+ "buyer_role": "Director of Platform",
+ "person": null,
+ "signal": "Announced a migration from Docker to microVMs for notebook kernels",
+ "quote": "we are migrating notebook kernels from docker to microvms",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "deltanb.example.com"
+ ],
+ "source": "fallback"
+}

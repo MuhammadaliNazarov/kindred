@@ -1,0 +1,17 @@
+{
+ "company": "Pylon Agents",
+ "domain": "pylon.example.com",
+ "buyer_role": "Founding Engineer",
+ "person": "Ivan Petrov",
+ "signal": "Founding Engineer, agent infrastructure",
+ "quote": "you will design how our agents safely execute code and browse the web",
+ "source_url": "https://example.com/pylon/jobs/founding-eng",
+ "lead_id": "L6",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "pylon.example.com"
+ ],
+ "source": "lead"
+}

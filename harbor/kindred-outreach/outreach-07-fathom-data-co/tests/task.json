@@ -1,0 +1,17 @@
+{
+ "company": "Fathom Data Co",
+ "domain": "fathom.example.com",
+ "buyer_role": "CTO",
+ "person": "Sofia Marin",
+ "signal": "Appointed a new CTO from a developer-platform company",
+ "quote": "fathom data co today announced its new chief technology officer",
+ "source_url": "https://example.com/fathom/news/new-cto",
+ "lead_id": "L7",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "fathom.example.com"
+ ],
+ "source": "lead"
+}

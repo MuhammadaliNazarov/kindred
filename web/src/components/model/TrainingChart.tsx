@@ -18,14 +18,14 @@ export function LineChart({ points, height = 180 }: { points: TrainPoint[]; heig
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} role="img" aria-label="Reward per GRPO step">
       {ticks.map((v) => (
         <g key={v}>
-          <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.08)" />
-          <text x={PL - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#8d99b8">{v.toFixed(1)}</text>
+          <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="#eef1f6" />
+          <text x={PL - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#5b6683">{v.toFixed(1)}</text>
         </g>
       ))}
-      <text x={PL} y={H - 5} fontSize={9} fill="#8d99b8">step {minStep}</text>
-      <text x={W - PR} y={H - 5} textAnchor="end" fontSize={9} fill="#8d99b8">step {maxStep}</text>
-      <polyline fill="none" stroke="#34d399" strokeWidth={2} strokeLinejoin="round" points={points.map((p) => `${x(p.step)},${y(p.reward)}`).join(" ")} />
-      {points.length <= 60 && points.map((p) => <circle key={p.step} cx={x(p.step)} cy={y(p.reward)} r={2} fill="#34d399" />)}
+      <text x={PL} y={H - 5} fontSize={9} fill="#5b6683">step {minStep}</text>
+      <text x={W - PR} y={H - 5} textAnchor="end" fontSize={9} fill="#5b6683">step {maxStep}</text>
+      <polyline fill="none" stroke="#10b981" strokeWidth={2} strokeLinejoin="round" points={points.map((p) => `${x(p.step)},${y(p.reward)}`).join(" ")} />
+      {points.length <= 60 && points.map((p) => <circle key={p.step} cx={x(p.step)} cy={y(p.reward)} r={2} fill="#10b981" />)}
     </svg>
   );
 }
@@ -42,8 +42,8 @@ export function TrainingChart() {
   const pts = log?.points ?? [];
   const last = pts[pts.length - 1];
   return (
-    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
-      <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2">
+    <section className="glass overflow-hidden rounded-[16px]">
+      <div className="glass-band flex items-center gap-2 px-4 py-3">
         <h3 className="font-serif text-[18px] text-neutral-900">Reward per GRPO step</h3>
         {log?.sample && <Badge tone="warn">sample</Badge>}
         {last && <span className="ml-auto text-[11px] tabular-nums text-neutral-500">{pts.length} steps · latest {last.reward.toFixed(2)} · first {pts[0].reward.toFixed(2)}</span>}

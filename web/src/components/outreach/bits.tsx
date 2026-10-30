@@ -61,10 +61,10 @@ export function Btn({
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        "inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-sm border px-2.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
-        variant === "default" && "border-neutral-300 bg-surface text-neutral-800 hover:bg-neutral-50",
-        variant === "primary" && "border-emerald-700 bg-emerald-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-emerald-700",
-        variant === "danger" && "border-rose-200 bg-surface text-rose-300 hover:bg-rose-50",
+        "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[12px] font-medium transition-[transform,background-color] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40",
+        variant === "default" && "border-neutral-200 bg-white text-neutral-800 hover:bg-[#f3f5fa]",
+        variant === "primary" && "border-emerald-700 bg-emerald-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] hover:bg-emerald-700",
+        variant === "danger" && "border-rose-200 bg-white text-rose-300 hover:bg-rose-50",
         variant === "ghost" && "border-transparent bg-transparent text-neutral-600 hover:bg-neutral-100",
         className,
       )}

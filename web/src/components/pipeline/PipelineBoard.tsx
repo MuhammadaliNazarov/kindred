@@ -82,7 +82,7 @@ export function PipelineBoard() {
 
   return (
     <div className="px-8 py-8">
-      <div className="mb-5 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h1 className="k-title">
             Your <span className="k-accent">pipeline</span>
@@ -99,15 +99,15 @@ export function PipelineBoard() {
         <LearningLoop />
       </div>
 
-      <h2 className="mb-3 mt-10 text-[20px] text-neutral-950">Analytics</h2>
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <h2 className="mb-3 mt-10 text-[20px] font-semibold tracking-[-0.015em] text-neutral-950">Analytics</h2>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Funnel data={byStage} />
         <VariantTable rows={analytics.variants} />
         <IndustryTable rows={analytics.byIndustry} />
         <TierTable rows={analytics.byTier} />
       </div>
 
-      <div className="mt-3">
+      <div className="mt-4">
         <AuditLog events={audit} leadLabel={leadLabel} />
       </div>
     </div>

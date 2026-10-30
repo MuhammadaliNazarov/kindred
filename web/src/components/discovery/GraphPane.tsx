@@ -14,12 +14,12 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false 
 type NodeType = GraphData["nodes"][number]["type"];
 
 export const NODE_COLORS: Record<NodeType, string> = {
-  Me: "#34d399", // success
-  Company: "#e6ebf5", // near-white on navy
-  Person: "#6f8dff", // accent, lifted for contrast
-  Competitor: "#fb7185", // danger
-  Signal: "#fbbf24", // warn
-  Product: "#c4b5fd", // violet-300
+  Me: "#10b981", // success
+  Company: "#1f2a44", // ink on white
+  Person: "#2f5bff", // accent
+  Competitor: "#e11d48", // danger
+  Signal: "#f59e0b", // warn
+  Product: "#7c3aed", // violet
 };
 
 type GNode = GraphData["nodes"][number] & { x?: number; y?: number };
@@ -130,13 +130,13 @@ export function GraphPane({
           <line x1="14" y1="48" x2="52" y2="20" stroke="currentColor" strokeWidth="1.5" />
           <line x1="52" y1="20" x2="88" y2="40" stroke="currentColor" strokeWidth="1.5" />
           <line x1="88" y1="40" x2="108" y2="14" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="14" cy="48" r="5" fill="#34d399" />
-          <circle cx="52" cy="20" r="4" fill="#6f8dff" />
-          <circle cx="88" cy="40" r="4" fill="#6f8dff" />
-          <circle cx="108" cy="14" r="5" fill="#e6ebf5" />
+          <circle cx="14" cy="48" r="5" fill="#10b981" />
+          <circle cx="52" cy="20" r="4" fill="#2f5bff" />
+          <circle cx="88" cy="40" r="4" fill="#2f5bff" />
+          <circle cx="108" cy="14" r="5" fill="#1f2a44" />
         </svg>
         <div>
-          <div className="font-serif text-[14px] text-neutral-800">Pick an account to draw its graph</div>
+          <div className="font-serif text-[14px] text-neutral-800">Select a company to see who can introduce you</div>
           <div className="mt-0.5">You → ex-colleague → buyer. The warm path and its Cypher appear here.</div>
         </div>
       </div>
@@ -152,7 +152,7 @@ export function GraphPane({
         </div>
       </div>
 
-      <div ref={wrapRef} className="relative h-[320px] shrink-0 border-b border-neutral-200 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.07)_1px,transparent_0)] bg-[length:14px_14px]">
+      <div ref={wrapRef} className="relative h-[320px] shrink-0 border-b border-neutral-200 bg-[#fbfcfe] bg-[radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.07)_1px,transparent_0)] bg-[length:14px_14px]">
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[12px] text-neutral-500">
             <div className="relative flex h-10 w-10 items-center justify-center">
@@ -177,12 +177,12 @@ export function GraphPane({
               nodeRelSize={4}
               linkLabel={(l: GLink) => l.rel}
               nodeLabel={(n: GNode) => `${n.type}: ${n.label}`}
-              linkColor={(l: GLink) => (onPath(l) ? "#34d399" : "rgba(255,255,255,0.16)")}
+              linkColor={(l: GLink) => (onPath(l) ? "#10b981" : "rgba(15,23,42,0.14)")}
               linkWidth={(l: GLink) => (onPath(l) ? 2.5 : 1)}
               linkDirectionalArrowLength={3}
               linkDirectionalArrowRelPos={1}
               linkDirectionalParticles={(l: GLink) => (onPath(l) ? 2 : 0)}
-              linkDirectionalParticleColor={() => "#9fd3ff"}
+              linkDirectionalParticleColor={() => "#2f5bff"}
               onEngineStop={() => {
                 // Fit once the layout settles; a second pass catches the last drift after reheat.
                 fgRef.current?.zoomToFit?.(300, 36);
@@ -195,11 +195,11 @@ export function GraphPane({
                 const y = n.y ?? 0;
                 ctx.beginPath();
                 ctx.arc(x, y, r, 0, 2 * Math.PI);
-                ctx.fillStyle = NODE_COLORS[n.type] ?? "#8d99b8";
+                ctx.fillStyle = NODE_COLORS[n.type] ?? "#5b6683";
                 ctx.fill();
                 if (hot) {
                   ctx.lineWidth = 2 / scale;
-                  ctx.strokeStyle = "#34d399";
+                  ctx.strokeStyle = "#10b981";
                   ctx.beginPath();
                   ctx.arc(x, y, r + 2.5, 0, 2 * Math.PI);
                   ctx.stroke();
@@ -218,9 +218,9 @@ export function GraphPane({
                 const ty = above ? y - r - 2.5 : y + r + 2.5;
                 // White pill behind the text so overlapping labels stay legible.
                 const pad = 2 / scale;
-                ctx.fillStyle = "rgba(7,13,34,0.85)";
+                ctx.fillStyle = "rgba(255,255,255,0.92)";
                 ctx.fillRect(x - tw / 2 - pad, above ? ty - fs - pad / 2 : ty - pad / 2, tw + pad * 2, fs + pad);
-                ctx.fillStyle = hot ? "#6ee7b7" : "#dfe4ef";
+                ctx.fillStyle = hot ? "#047857" : "#1f2a44";
                 ctx.fillText(text, x, ty);
               }}
               nodePointerAreaPaint={(n: GNode, color: string, ctx: CanvasRenderingContext2D) => {

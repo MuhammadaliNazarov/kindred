@@ -98,6 +98,36 @@ if (run('polish')) {
   out.polish = pol
 }
 
+if (run('ui')) {
+  phase('UI')
+  const shots = `Look at the current app first: run \`cd ${ROOT}/web && npm run dev -- -p 3400\` (only one agent should start it; if :3400 already answers, reuse it) ` +
+    `and screenshot all 6 pages (intake, icp, discovery, outreach, pipeline, model) at 1440px. User's decided direction: a LIGHT app like most pro tools — a deep blue/navy left sidebar (with subtle liquid-glass ` +
+    `nav pills and the logo) and a clean light main canvas (off-white like #f7f8fb, white cards with hairline borders, never stark pure-white everywhere), ` +
+    `one blue accent (#2f5bff), liquid glass used sparingly (sidebar, sticky top bar, hero/credits strip, modals) so it reads premium not gimmicky. ` +
+    `Fonts are decided: Geist for headings and body, Geist Mono for numbers/scores/Cypher, and Instrument Serif italic for ONE accent word in each page hero. Do NOT edit code. ` +
+    `Return a concrete spec (exact CSS values, Tailwind classes, component names/files to change) under 350 words.`
+  const roles = [
+    ['designer', ['ecc:liquid-glass-design', 'high-end-visual-design', 'ecc:frontend-design-direction'], 'Visual direction for the light canvas + blue sidebar: colour tokens (canvas, cards, borders, text, chips, status), where liquid glass goes and its exact recipe (backdrop-filter blur+saturate, translucent fill, specular top highlight, inner border), card elevation, the blue sidebar treatment.'],
+    ['layout', ['ui-ux-pro-max', 'ecc:make-interfaces-feel-better'], 'Where buttons and controls go: primary vs secondary CTA hierarchy per page, one primary per view, button sizes/shapes (pill, glow on primary), toolbar/filter chip placement, spacing grid, alignment of hero/actions/tables.'],
+    ['typography', ['design-taste-frontend', 'apple-hig'], 'Fonts are decided (Geist, Geist Mono, Instrument Serif italic accent) — load via next/font/google; define the full type scale, weights (400/500 only, 600 for tiny labels if needed), tracking, line-heights, tabular-number rules, and where each style is used.'],
+    ['usability', ['ecc:click-path-audit', 'ui-ux-pro-max'], `Ease of use for the 2:30 demo in ${ROOT}/DEMO.md: fewest clicks, obvious next step on each page, empty/loading states, what a judge sees in 1 second per page, tooltips/labels to rename, anything confusing (e.g. the "every claim has a source" check text wrapping into a column).`],
+    ['motion', ['emil-design-eng', 'ecc:motion-patterns'], 'Motion: page enter, card hover lift, glass sheen, credit meter, thinking stream, button press, kanban drag; durations/easings; reduced-motion.'],
+    ['accessibility', ['ecc:accessibility'], 'Contrast on glass over dark (WCAG AA for 13px text), focus rings that fit the glass look, colour-only signals, hit targets.'],
+  ]
+  const specs = await parallel(roles.map(([key, skills, task]) => () =>
+    agent(`${useSkill(skills)}\nYou are the ${key} agent in a UI design team for Kindred (${ROOT}/web, Next.js + Tailwind v4). ${task}\n${shots}`,
+      { label: `ui:${key}`, phase: 'UI' })))
+  const build = await agent(`${useSkill(['ecc:frontend-design-direction', 'ecc:react-patterns'])}\nYou are the UI orchestrator and implementer for Kindred (${ROOT}/web). ` +
+    `Merge these specialist specs into one coherent design (resolve conflicts; designer wins on look, accessibility wins on contrast, usability wins on flow), ` +
+    `write the merged spec to ${ROOT}/web/DESIGN-SYSTEM.md, then implement it across web/src (globals.css tokens, shell, all 6 pages). Only edit web/. Keep every feature working. ` +
+    `Verify with \`npx tsc --noEmit && npm run build\` and screenshots of all 6 pages at 1440px (dev server on 3400; stop it at the end). Report (<150 words).\n\n` +
+    roles.map(([k], i) => `## ${k}\n${specs[i] || '(no output)'}`).join('\n\n'), { label: 'ui:orchestrator', phase: 'UI' })
+  const qa = await agent(`${useSkill(['design-review', 'ecc:accessibility'])}\n${ctx}\nDesign QA of the restyled Kindred web app (${ROOT}/web): start dev on 3400, screenshot all 6 pages at 1440px, ` +
+    `check glass looks real, no stray white surfaces, type hierarchy, button hierarchy, contrast. Fix only small issues directly in web/src (tsc must pass), stop the server, and report (<120 words).`,
+    { label: 'ui:qa', phase: 'UI' })
+  out.ui = { build, qa }
+}
+
 if (run('review')) {
   phase('Review')
   const [fe, be, sec] = await parallel([

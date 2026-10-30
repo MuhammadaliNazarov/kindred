@@ -1,0 +1,152 @@
+[
+ {
+  "step": 1,
+  "reward": 0.6562,
+  "kl": -0.0,
+  "elapsed_s": 19.3
+ },
+ {
+  "step": 2,
+  "reward": 0.6562,
+  "kl": 4e-06,
+  "elapsed_s": 32.1
+ },
+ {
+  "step": 3,
+  "reward": 0.6875,
+  "kl": 1.5e-05,
+  "elapsed_s": 48.4
+ },
+ {
+  "step": 4,
+  "reward": 0.4375,
+  "kl": 3.5e-05,
+  "elapsed_s": 72.9
+ },
+ {
+  "step": 5,
+  "reward": 0.5625,
+  "kl": 4.7e-05,
+  "elapsed_s": 104.3
+ },
+ {
+  "step": 6,
+  "reward": 0.6875,
+  "kl": 6.1e-05,
+  "elapsed_s": 119.7
+ },
+ {
+  "step": 7,
+  "reward": 0.5625,
+  "kl": 8.6e-05,
+  "elapsed_s": 136.0
+ },
+ {
+  "step": 8,
+  "reward": 0.5938,
+  "kl": 8.9e-05,
+  "elapsed_s": 158.3
+ },
+ {
+  "step": 9,
+  "reward": 0.5625,
+  "kl": 8.9e-05,
+  "elapsed_s": 178.7
+ },
+ {
+  "step": 10,
+  "reward": 0.6875,
+  "kl": 0.000106,
+  "elapsed_s": 202.9
+ },
+ {
+  "step": 11,
+  "reward": 0.4375,
+  "kl": 8.6e-05,
+  "elapsed_s": 220.5
+ },
+ {
+  "step": 12,
+  "reward": 0.625,
+  "kl": 0.000167,
+  "elapsed_s": 244.0
+ },
+ {
+  "step": 13,
+  "reward": 0.625,
+  "kl": 0.00015,
+  "elapsed_s": 258.8
+ },
+ {
+  "step": 14,
+  "reward": 0.7812,
+  "kl": 0.00013,
+  "elapsed_s": 270.9
+ },
+ {
+  "step": 15,
+  "reward": 0.5938,
+  "kl": 0.000117,
+  "elapsed_s": 296.7
+ },
+ {
+  "step": 16,
+  "reward": 0.6562,
+  "kl": 0.000278,
+  "elapsed_s": 314.8
+ },
+ {
+  "step": 17,
+  "reward": 0.4062,
+  "kl": 0.000204,
+  "elapsed_s": 353.8
+ },
+ {
+  "step": 18,
+  "reward": 0.6875,
+  "kl": 0.000231,
+  "elapsed_s": 387.3
+ },
+ {
+  "step": 19,
+  "reward": 0.6875,
+  "kl": 0.000205,
+  "elapsed_s": 414.5
+ },
+ {
+  "step": 20,
+  "reward": 0.5625,
+  "kl": 0.000147,
+  "elapsed_s": 433.4
+ },
+ {
+  "step": 21,
+  "reward": 0.6875,
+  "kl": 0.000171,
+  "elapsed_s": 453.2
+ },
+ {
+  "step": 22,
+  "reward": 0.5938,
+  "kl": 0.000155,
+  "elapsed_s": 468.8
+ },
+ {
+  "step": 23,
+  "reward": 0.7188,
+  "kl": 0.000215,
+  "elapsed_s": 484.0
+ },
+ {
+  "step": 24,
+  "reward": 0.5938,
+  "kl": 0.000154,
+  "elapsed_s": 496.4
+ },
+ {
+  "step": 25,
+  "reward": 0.5625,
+  "kl": 0.000231,
+  "elapsed_s": 507.3
+ }
+]

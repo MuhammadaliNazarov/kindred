@@ -15,7 +15,7 @@ export function Tip({ content, children }: { content: ReactNode; children: React
           side="bottom"
           align="start"
           sideOffset={4}
-          className="z-50 max-w-sm rounded border border-neutral-200 bg-panel p-2 text-[12px] leading-snug text-neutral-900 shadow-md"
+          className="glass-3 z-50 max-w-sm rounded-[12px] p-2.5 text-[12px] leading-snug text-neutral-900"
         >
           {content}
         </Tooltip.Content>
@@ -30,7 +30,7 @@ export function TierBadge({ tier }: { tier: Company["tier"] }) {
       className={clsx(
         "inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm text-[11px] font-medium",
         tier === "A" && "bg-emerald-600 text-white",
-        tier === "B" && "bg-amber-500 text-[#1a1300]",
+        tier === "B" && "bg-amber-500 text-[#3b2a00]",
         tier === "C" && "bg-neutral-200 text-neutral-700",
       )}
     >
@@ -44,7 +44,7 @@ export function ScoreCell({ c }: { c: Company }) {
   const intentPct = Math.max(0, Math.min(100 - fitPct, c.intent));
   return (
     <div className="flex items-center gap-2">
-      <span className="w-6 text-right tabular-nums font-medium">{c.score}</span>
+      <span className="w-6 text-right font-mono tabular-nums font-medium">{c.score}</span>
       <TierBadge tier={c.tier} />
       <Tip
         content={
@@ -53,7 +53,7 @@ export function ScoreCell({ c }: { c: Company }) {
           </span>
         }
       >
-        <div className="flex h-1.5 w-16 overflow-hidden rounded-full bg-neutral-100">
+        <div className="flex h-1.5 w-16 overflow-hidden rounded-full bg-neutral-100" aria-hidden>
           <div className="h-full bg-accent-hover" style={{ width: `${fitPct}%` }} />
           <div className="h-full bg-emerald-600" style={{ width: `${intentPct}%` }} />
         </div>

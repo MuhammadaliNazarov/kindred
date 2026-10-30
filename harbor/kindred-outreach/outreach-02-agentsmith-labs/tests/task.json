@@ -1,0 +1,17 @@
+{
+ "company": "Agentsmith Labs",
+ "domain": "agentsmith.example.com",
+ "buyer_role": "CTO",
+ "person": "Marco Bellini",
+ "signal": "Hiring Platform Engineers for agent runtime",
+ "quote": "build the runtime where thousands of agents execute code every hour",
+ "source_url": "https://example.com/agentsmith/jobs/platform",
+ "lead_id": "L2",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "agentsmith.example.com"
+ ],
+ "source": "lead"
+}

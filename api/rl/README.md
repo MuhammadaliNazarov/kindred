@@ -49,3 +49,17 @@ cd api/rl
 ~/rl/bin/python eval.py --model HuggingFaceTB/SmolLM2-360M-Instruct --lora out/lora --n 30
 curl -s localhost:8040/export/preferences -o out/preferences.jsonl && ~/rl/bin/python train_dpo_cpu.py --steps 30   # optional
 ```
+
+## 4. Harbor dataset + harbor-rl (Tinker)
+The outreach task is also a [Harbor](https://harborframework.com) dataset: `harbor/kindred-outreach/` (20 tasks
+from the live API's `/env/tasks` + fallback leads; `python3 harbor/make_tasks.py` regenerates them).
+Each task: `instruction.md` (lead, buyer role, signal + quote + source URL, allowed links, rules → write
+`/app/draft.txt`), `environment/Dockerfile` (python:3.12-slim), `tests/verifier.py` (standalone copy of
+`app/verifier.py`), `tests/test.sh` → multi-reward `/logs/verifier/reward.json`
+(`company_mentioned, cites_signal, question_cta, length_30_90, claims_sourced, no_guarantees, allowed_links_only`
+as 0/1 + `reward` = normalised verifier score, same as `OutreachEnv`), `solution/solve.sh` (oracle draft, 1.0).
+```
+cd harbor && harbor run -p kindred-outreach -a oracle -c config.yaml     # needs Docker; oracle = 1.0
+uv run --script harbor/rl/train.py --max-tasks 4 --sandbox docker         # harbor-rl + Tinker LoRA (TINKER_API_KEY, billing on)
+```
+See `harbor/rl/README.md`.

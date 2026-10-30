@@ -1,0 +1,17 @@
+{
+ "company": "Cinder Labs",
+ "domain": "cinder.example.com",
+ "buyer_role": "VP Engineering",
+ "person": null,
+ "signal": "Raised a $9M seed round to build browser agents",
+ "quote": "cinder labs raised a nine million seed round to build browser agents",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "cinder.example.com"
+ ],
+ "source": "fallback"
+}

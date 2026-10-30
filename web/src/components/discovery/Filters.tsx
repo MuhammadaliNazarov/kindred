@@ -46,8 +46,8 @@ export function Filters({
     onChange({ ...value, tiers: value.tiers.includes(t) ? value.tiers.filter((x) => x !== t) : [...value.tiers, t] });
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-neutral-200 px-4 py-2 text-[12px]">
-      <div className="flex items-center gap-1">
+    <div className="glass-band flex min-h-12 flex-wrap items-center gap-2 px-4 py-2 text-[12px]">
+      <div className="flex items-center gap-1" role="group" aria-label="Tier">
         <span className="mr-1 text-neutral-500">Tier</span>
         {(["A", "B", "C"] as const).map((t) => {
           const on = value.tiers.includes(t);
@@ -56,12 +56,13 @@ export function Filters({
               key={t}
               type="button"
               onClick={() => toggleTier(t)}
+              aria-pressed={on}
               className={clsx(
-                "h-6 w-7 rounded-sm border font-medium",
-                on && t === "A" && "border-emerald-600 bg-emerald-600 text-white",
-                on && t === "B" && "border-amber-500 bg-amber-500 text-[#1a1300]",
-                on && t === "C" && "border-neutral-400 bg-neutral-200 text-neutral-800",
-                !on && "border-neutral-200 text-neutral-400",
+                "h-8 min-w-8 rounded-full border px-2.5 font-medium transition-colors duration-150",
+                on && t === "A" && "border-emerald-200 bg-emerald-50 text-emerald-300",
+                on && t === "B" && "border-amber-200 bg-amber-50 text-amber-300",
+                on && t === "C" && "border-neutral-300 bg-neutral-100 text-neutral-800",
+                !on && "border-neutral-200 bg-white text-neutral-400 hover:text-neutral-700",
               )}
             >
               {t}
@@ -75,7 +76,7 @@ export function Filters({
         <select
           value={value.industry}
           onChange={(e) => onChange({ ...value, industry: e.target.value })}
-          className="h-6 rounded-sm border border-neutral-200 bg-surface px-1"
+          className="h-8 rounded-full border border-[#8a93a8] bg-white px-3 text-[12px]"
         >
           <option value="">All</option>
           {industries.map((i) => (
@@ -91,7 +92,7 @@ export function Filters({
         <select
           value={value.signal}
           onChange={(e) => onChange({ ...value, signal: e.target.value as DiscoveryFilters["signal"] })}
-          className="h-6 rounded-sm border border-neutral-200 bg-surface px-1"
+          className="h-8 rounded-full border border-[#8a93a8] bg-white px-3 text-[12px]"
         >
           <option value="">Any</option>
           {SIGNAL_TYPES.map((s) => (
@@ -105,7 +106,7 @@ export function Filters({
       <Switch on={value.verifiedOnly} onToggle={() => onChange({ ...value, verifiedOnly: !value.verifiedOnly })} label="Verified sources only" />
       <Switch on={value.showDropped} onToggle={() => onChange({ ...value, showDropped: !value.showDropped })} label="Show dropped claims" tone="rose" />
 
-      <span className="ml-auto tabular-nums text-neutral-500">
+      <span className="ml-auto font-mono tabular-nums text-neutral-500">
         <span className="font-medium text-neutral-900">{count}</span> of {total} accounts
       </span>
     </div>
@@ -114,11 +115,11 @@ export function Filters({
 
 function Switch({ on, onToggle, label, tone = "emerald" }: { on: boolean; onToggle: () => void; label: string; tone?: "emerald" | "rose" }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex select-none items-center gap-1.5">
+    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex h-8 select-none items-center gap-1.5 rounded-full px-2 hover:bg-black/[0.03]">
       <span
         className={clsx(
           "relative h-4 w-7 rounded-full transition-colors",
-          on ? (tone === "rose" ? "bg-rose-600" : "bg-emerald-600") : "bg-neutral-300",
+          on ? (tone === "rose" ? "bg-rose-600" : "bg-accent") : "bg-[#b4bbca]",
         )}
       >
         <span className={clsx("absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all", on ? "left-3.5" : "left-0.5")} />

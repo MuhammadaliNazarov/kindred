@@ -1,0 +1,17 @@
+{
+ "company": "Lattice CI",
+ "domain": "latticeci.example.com",
+ "buyer_role": "VP Engineering",
+ "person": null,
+ "signal": "Posted about cold-start times slowing their agent test runners",
+ "quote": "cold starts are slowing every agent test run we ship",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "latticeci.example.com"
+ ],
+ "source": "fallback"
+}

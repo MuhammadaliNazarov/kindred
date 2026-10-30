@@ -1,0 +1,17 @@
+{
+ "company": "Kestrel Robotics",
+ "domain": "kestrel.example.com",
+ "buyer_role": "Director of Software",
+ "person": "Tom Reyes",
+ "signal": "Launched a new warehouse robot arm",
+ "quote": "kestrel robotics launches its new warehouse robot arm",
+ "source_url": "https://example.com/kestrel/news/arm",
+ "lead_id": "L8",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "kestrel.example.com"
+ ],
+ "source": "lead"
+}

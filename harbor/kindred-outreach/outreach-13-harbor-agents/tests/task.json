@@ -1,0 +1,17 @@
+{
+ "company": "Harbor Agents",
+ "domain": "harbor.example.com",
+ "buyer_role": "Head of Infrastructure",
+ "person": null,
+ "signal": "Raised a $25M Series B for enterprise coding agents",
+ "quote": "harbor agents raised a 25 million series b for enterprise coding agents",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "harbor.example.com"
+ ],
+ "source": "fallback"
+}

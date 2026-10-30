@@ -1,0 +1,17 @@
+{
+ "company": "Brightforge",
+ "domain": "brightforge.example.com",
+ "buyer_role": "Head of Platform",
+ "person": "Amara Nwosu",
+ "signal": "Migrating off self-hosted Firecracker for notebook isolation",
+ "quote": "we are moving off our self hosted firecracker fleet for notebook isolation",
+ "source_url": "https://example.com/brightforge/eng/firecracker",
+ "lead_id": "L5",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "brightforge.example.com"
+ ],
+ "source": "lead"
+}

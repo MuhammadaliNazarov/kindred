@@ -1,0 +1,17 @@
+{
+ "company": "Runebook",
+ "domain": "runebook.example.com",
+ "buyer_role": "CTO",
+ "person": null,
+ "signal": "Hiring a Security Engineer to isolate customer workloads",
+ "quote": "harden the isolation boundary between customer workloads",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "runebook.example.com"
+ ],
+ "source": "fallback"
+}

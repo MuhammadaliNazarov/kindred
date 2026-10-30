@@ -1,0 +1,17 @@
+{
+ "company": "Nimbus Tutor",
+ "domain": "nimbustutor.example.com",
+ "buyer_role": "CTO",
+ "person": null,
+ "signal": "Launched a coding tutor that runs student code in the browser",
+ "quote": "the tutor runs student code and explains each error",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "nimbustutor.example.com"
+ ],
+ "source": "fallback"
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Loader2, Play } from "lucide-react";
 import type { Company, Enrichment, GraphData, Lead, Person, ThinkingStep, WarmPath } from "@/lib/types";
@@ -9,6 +9,7 @@ import { useCredits, useThinking } from "@/components/shell/context";
 import { AccountsGrid } from "@/components/discovery/AccountsGrid";
 import { DEFAULT_FILTERS, Filters, applyFilters, type DiscoveryFilters } from "@/components/discovery/Filters";
 import { GraphPane } from "@/components/discovery/GraphPane";
+import { buttonClass } from "@/components/ui/Button";
 
 const step = (s: Omit<ThinkingStep, "id" | "at">): ThinkingStep => ({
   id: `ts_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
@@ -123,6 +124,16 @@ export default function DiscoveryPage() {
     void loadLead(lead?.id, c.name);
   };
 
+  // Open on the top A-tier account so the graph and its Cypher are already showing (one click saved in the demo).
+  const autoSelected = useRef(false);
+  useEffect(() => {
+    if (autoSelected.current || !companies?.length || leads.length === 0 || selCompanyId) return;
+    autoSelected.current = true;
+    const first = companies.find((c) => c.tier === "A") ?? companies[0];
+    onSelectCompany(first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies, leads]);
+
   const onSelectPerson = (p: Person) => {
     setSelCompanyId(p.company_id);
     setSelPersonId(p.id);
@@ -160,8 +171,8 @@ export default function DiscoveryPage() {
 
   return (
     <Tooltip.Provider>
-      <div className="flex h-full min-h-0 flex-col text-neutral-900">
-        <header className="flex items-end gap-4 px-6 pb-3 pt-6">
+      <div className="flex h-[calc(100vh-72px)] min-h-[640px] flex-col text-neutral-900">
+        <header className="flex items-end gap-4 px-8 pb-4 pt-8">
           <div>
             <h1 className="k-title">
               Accounts with a <span className="k-accent">why now</span>
@@ -172,13 +183,14 @@ export default function DiscoveryPage() {
             type="button"
             onClick={() => void onDiscover()}
             disabled={discovering}
-            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-accent disabled:cursor-wait disabled:text-neutral-400"
+            className={buttonClass("primary", "ml-auto disabled:cursor-wait")}
           >
             {discovering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             {discovering ? "Discovering…" : "Run discovery"}
           </button>
         </header>
 
+        <div className="glass mx-8 mb-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px]">
         <Filters
           value={filters}
           onChange={setFilters}
@@ -200,11 +212,11 @@ export default function DiscoveryPage() {
                 </div>
                 <div>{companies.length === 0 ? "Generate the ICP first, then run discovery to pull accounts with cited signals." : "Widen the tier or signal filter to see more accounts."}</div>
                 {companies.length === 0 ? (
-                  <button type="button" onClick={() => void onDiscover()} className="mt-1 h-7 rounded-sm border border-accent bg-accent px-2.5 text-[12px] font-medium text-white hover:bg-accent-hover">
+                  <button type="button" onClick={() => void onDiscover()} className={buttonClass("primary", "mt-1")}>
                     Run discovery
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className="mt-1 h-7 rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:border-accent">
+                  <button type="button" onClick={() => setFilters(DEFAULT_FILTERS)} className={buttonClass("secondary", "mt-1")}>
                     Clear filters
                   </button>
                 )}
@@ -228,6 +240,7 @@ export default function DiscoveryPage() {
           <aside className="h-[46%] w-full shrink-0 overflow-hidden border-t border-neutral-200 xl:h-auto xl:w-[clamp(300px,27vw,400px)] xl:border-l xl:border-t-0">
             <GraphPane loading={graphLoading} graph={graph} warmPath={warmPath} company={selCompany} person={selPerson} />
           </aside>
+        </div>
         </div>
       </div>
     </Tooltip.Provider>

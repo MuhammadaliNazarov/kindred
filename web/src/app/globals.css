@@ -1,83 +1,217 @@
 @import "tailwindcss";
 
 /*
- * Kindred: premium dark. Deep navy canvas, glass surfaces, one accent blue.
- * The Tailwind neutral / status scales are remapped for dark so dense grids keep their structure.
+ * Kindred: light canvas, navy sidebar (see DESIGN-SYSTEM.md).
+ * White cards on #f7f8fb, one accent blue. Glass only on the sticky header, credits popover and modals.
+ * The navy sidebar re-scopes the old dark ladder via .nav-dark.
  */
 :root {
-  --bg-0: #070d22;
-  --bg-1: #0b1430;
-  --panel: #0e1838;
+  --bg-0: #f7f8fb;
+  --panel: #ffffff;
+  --hairline: #e6e9f0;
+  --ink: #0b1430;
   --accent: #2f5bff;
-  --accent-hover: #4a70ff;
+  --accent-hover: #2449e0;
   --accent-2: #9fd3ff;
-  --success: #34d399;
-  --warn: #fbbf24;
-  --danger: #fb7185;
-  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-  color-scheme: dark;
+  --success: #047857;
+  --warn: #b45309;
+  --danger: #be123c;
+  --navy-0: #0d1d52;
+  --navy-1: #081236;
+  --ease-out-quart: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --d-press: 120ms;
+  --d-fast: 160ms;
+  --d-base: 220ms;
+  --d-enter: 280ms;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px -6px rgba(16, 24, 40, 0.06);
+  --shadow-card-hover: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px -12px rgba(47, 91, 255, 0.18);
+  color-scheme: light;
 }
 
 @theme {
-  --color-neutral-50: rgba(255, 255, 255, 0.035);
-  --color-neutral-100: rgba(255, 255, 255, 0.06);
-  --color-neutral-200: rgba(255, 255, 255, 0.09);
-  --color-neutral-300: rgba(255, 255, 255, 0.18);
-  --color-neutral-400: #8d99b8;
-  --color-neutral-500: #a1acc8;
-  --color-neutral-600: #b7c0d8;
-  --color-neutral-700: #ccd3e4;
-  --color-neutral-800: #dfe4ef;
-  --color-neutral-900: #f2f5fb;
-  --color-neutral-950: #ffffff;
+  /* surfaces + hairlines */
+  --color-neutral-50: #f4f6fa;
+  --color-neutral-100: #eef1f6;
+  --color-neutral-200: #e6e9f0;
+  --color-neutral-300: #d5dae4;
+  /* text ladder (WCAG AA on white): 950 headings, 900 body, 700 secondary, 500 meta floor, 400 placeholder */
+  --color-neutral-400: #6b7590;
+  --color-neutral-500: #5b6683;
+  --color-neutral-600: #4d5873;
+  --color-neutral-700: #3d4862;
+  --color-neutral-800: #2a3450;
+  --color-neutral-900: #1f2a44;
+  --color-neutral-950: #0b1430;
 
-  --color-emerald-50: rgba(52, 211, 153, 0.1);
-  --color-emerald-100: rgba(52, 211, 153, 0.16);
-  --color-emerald-200: rgba(52, 211, 153, 0.3);
-  --color-emerald-300: #6ee7b7;
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #34d399;
+  /* status: 50 fill, 200 ring, 300 text (dark enough for 4.5:1), 400/500 solid */
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #10b981;
+  --color-emerald-500: #10b981;
   --color-emerald-600: #047857;
   --color-emerald-700: #065f46;
 
-  --color-rose-50: rgba(251, 113, 133, 0.1);
-  --color-rose-200: rgba(251, 113, 133, 0.32);
-  --color-rose-300: #fda4af;
-  --color-rose-400: #fb7185;
+  --color-rose-50: #fff1f2;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-rose-500: #f43f5e;
   --color-rose-600: #be123c;
 
-  --color-amber-50: rgba(251, 191, 36, 0.1);
-  --color-amber-200: rgba(251, 191, 36, 0.3);
-  --color-amber-300: #fcd34d;
-  --color-amber-500: #fbbf24;
+  --color-amber-50: #fffbeb;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #92400e;
+  --color-amber-500: #f59e0b;
 
-  --color-violet-50: rgba(167, 139, 250, 0.12);
-  --color-violet-200: rgba(167, 139, 250, 0.32);
-  --color-violet-300: #c4b5fd;
-  --color-sky-50: rgba(159, 211, 255, 0.1);
-  --color-sky-200: rgba(159, 211, 255, 0.3);
-  --color-sky-300: #9fd3ff;
+  --color-violet-50: #f5f3ff;
+  --color-violet-200: #ddd6fe;
+  --color-violet-300: #6d28d9;
+  --color-sky-50: #f0f9ff;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #0369a1;
 
   --color-accent: #2f5bff;
-  --color-accent-hover: #4a70ff;
-  --color-accent-2: #9fd3ff;
-  --color-panel: #0e1838;
+  --color-accent-hover: #2449e0;
+  --color-accent-2: #2f5bff;
+  --color-panel: #ffffff;
 
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* legacy aliases: components use font-serif / font-display as the semibold sans heading face */
+  --font-serif: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
-/* Glass card fill with a soft top highlight */
+/* Small inline fill (selects, chips, inner rows). */
 @utility bg-surface {
-  background-color: rgba(255, 255, 255, 0.04);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 96px);
+  background-color: #f4f6fa;
+}
+
+/* ---------- surfaces ----------
+ * .glass / .glass-2 are white cards in the canvas (names kept so markup is stable).
+ * .glass-3 is the real liquid glass: modals, popovers, tooltips.
+ * .glass-bar is the sticky header.
+ */
+@utility glass {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-card);
+}
+@utility glass-2 {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-card);
+}
+@utility glass-3 {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(15, 23, 42, 0.08),
+    0 24px 64px -16px rgba(16, 24, 40, 0.28);
+  color: var(--color-neutral-900);
+}
+@utility glass-bar {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: inset 0 -1px 0 var(--hairline);
+}
+@utility glass-chip {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px var(--hairline);
+  color: var(--color-neutral-700);
+  border-color: transparent;
+}
+/* Interactive card: hover lift (fine pointers only) */
+@utility glass-card {
+  transition:
+    transform var(--d-base) var(--ease-out),
+    box-shadow var(--d-base) var(--ease-out),
+    border-color var(--d-base) var(--ease-out),
+    opacity var(--d-base) var(--ease-out);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: #d6dcf0;
+    }
+  }
+}
+/* Header band inside a card */
+@utility glass-band {
+  background-color: #fafbfd;
+  box-shadow: inset 0 -1px 0 #eef1f6;
+}
+/* Modal scrim */
+@utility scrim {
+  background-color: rgba(11, 18, 48, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Navy sidebar: put the dark text ladder back in scope for everything inside */
+.nav-dark {
+  --color-neutral-50: rgba(255, 255, 255, 0.04);
+  --color-neutral-100: rgba(255, 255, 255, 0.07);
+  --color-neutral-200: rgba(255, 255, 255, 0.10);
+  --color-neutral-300: rgba(255, 255, 255, 0.18);
+  --color-neutral-400: #8d99b8;
+  --color-neutral-500: #aab6d3;
+  --color-neutral-600: #b6c1dc;
+  --color-neutral-700: #c9d3ec;
+  --color-neutral-800: #dbe2f5;
+  --color-neutral-900: #e6ebff;
+  --color-neutral-950: #ffffff;
+  color: #e6ebff;
+  color-scheme: dark;
+}
+/* The navy the whole app sits on; the light canvas is a sheet laid over it */
+.shell-navy {
+  background:
+    radial-gradient(400px 300px at 0 0, rgba(47, 91, 255, 0.35), transparent 70%),
+    linear-gradient(180deg, var(--navy-0), var(--navy-1));
+}
+@media (prefers-reduced-transparency: reduce) {
+  .shell-navy {
+    background: #0b1640;
+  }
+}
+.nav-dark :focus-visible {
+  outline-color: #9fd3ff;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-3,
+  .glass-bar {
+    background: #ffffff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .scrim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .glass,
+  .glass-2 {
+    border-color: #9aa3b5;
+  }
 }
 
 html,
@@ -92,59 +226,91 @@ html {
 
 body {
   background-color: var(--bg-0);
-  background-image:
-    radial-gradient(1px 1px at 12% 8%, rgba(255, 255, 255, 0.35), transparent 60%),
-    radial-gradient(1px 1px at 34% 3%, rgba(255, 255, 255, 0.25), transparent 60%),
-    radial-gradient(1px 1px at 58% 11%, rgba(255, 255, 255, 0.3), transparent 60%),
-    radial-gradient(1px 1px at 76% 5%, rgba(255, 255, 255, 0.22), transparent 60%),
-    radial-gradient(1px 1px at 91% 14%, rgba(255, 255, 255, 0.28), transparent 60%),
-    radial-gradient(1.5px 1.5px at 47% 18%, rgba(159, 211, 255, 0.4), transparent 60%),
-    radial-gradient(60% 45% at 50% -10%, rgba(47, 91, 255, 0.28), transparent 70%),
-    radial-gradient(40% 30% at 85% 0%, rgba(159, 211, 255, 0.1), transparent 70%),
-    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
-  background-attachment: fixed;
   color: var(--color-neutral-900);
   font-family: var(--font-sans);
   font-size: 14px;
+  line-height: 1.55;
 }
 
 h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.02em;
   text-wrap: balance;
+  color: var(--color-neutral-950);
 }
 
 p {
   text-wrap: pretty;
 }
 
-/* Typography scale */
+/* Typography scale (see DESIGN-SYSTEM.md) */
 .k-hero {
   font-family: var(--font-display);
-  font-size: 44px;
-  line-height: 1.05;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-size: 32px;
+  line-height: 1.19;
+  font-weight: 600;
+  letter-spacing: -0.025em;
   color: var(--color-neutral-950);
 }
 .k-title {
   font-family: var(--font-display);
-  font-size: 32px;
-  line-height: 1.1;
-  font-weight: 500;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--color-neutral-950);
 }
+.k-h3 {
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-neutral-950);
+}
 .k-sub {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 14px;
   color: var(--color-neutral-500);
+  max-width: 65ch;
 }
-.k-accent {
-  color: #6f8dff; /* accent blue, lifted for AA text contrast on navy */
+.k-label {
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--color-neutral-500);
+}
+.k-stat {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  color: var(--color-neutral-950);
+}
+/* Accent word: Instrument Serif italic, the one editorial note in a sans UI */
+.k-accent,
+.accent-word {
+  color: var(--accent);
+}
+.accent-word {
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-size: 1.08em;
+}
+.k-hero .k-accent,
+.k-title .k-accent {
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-size: 1.08em;
 }
 
 /* Numbers, scores, code: Geist Mono, tabular */
@@ -153,7 +319,7 @@ code,
 pre,
 kbd {
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 
 /* Dense grids stay 13px and readable */
@@ -165,12 +331,20 @@ tbody tr {
   transition: background-color 120ms ease-out;
 }
 tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.035);
+  background-color: #f6f8fc;
+}
+thead {
+  background-color: #fafbfd;
 }
 
 /* Primary CTA + active pill glow */
-.bg-accent {
-  box-shadow: 0 0 0 1px rgba(111, 141, 255, 0.35) inset, 0 6px 24px -6px rgba(47, 91, 255, 0.65);
+button.bg-accent,
+a.bg-accent {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(47, 91, 255, 0.3);
+}
+button.bg-accent:not(:disabled):hover,
+a.bg-accent:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 20px -6px rgba(47, 91, 255, 0.5);
 }
 
 input,
@@ -179,8 +353,11 @@ select {
   color: var(--color-neutral-900);
   background-color: transparent;
 }
+select {
+  border-color: #8a93a8;
+}
 option {
-  background-color: var(--panel);
+  background-color: #ffffff;
   color: var(--color-neutral-900);
 }
 input::placeholder,
@@ -189,14 +366,14 @@ textarea::placeholder {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* thin, quiet scrollbars for dense panes */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  scrollbar-color: #d5dae4 transparent;
 }
 
 /* Tactile press for buttons; opt out with .no-press */
@@ -205,8 +382,8 @@ button:not(:disabled):not(.no-press):active {
 }
 button {
   transition-property: transform, background-color, border-color, color, opacity, box-shadow;
-  transition-duration: 140ms;
-  transition-timing-function: ease-out;
+  transition-duration: var(--d-press);
+  transition-timing-function: var(--ease-out);
 }
 
 /* ---------- motion ---------- */
@@ -225,33 +402,33 @@ button {
 }
 .wp-rise {
   animation: wp-rise 360ms var(--ease-out-quart) both;
-  animation-delay: calc(var(--i, 0) * 28ms);
+  animation-delay: calc(min(var(--i, 0), 6) * 40ms);
 }
 
 /* Agent Thinking steps streaming in from the top */
 @keyframes wp-stream {
-  from { opacity: 0; transform: translateY(-10px); filter: blur(2px); }
+  from { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
   60% { filter: blur(0); }
   to { opacity: 1; transform: none; }
 }
 .wp-stream {
-  animation: wp-stream 420ms var(--ease-out-quart) both;
+  animation: wp-stream 240ms var(--ease-out-quart) both;
 }
 
 /* A number that just changed: quick tick */
 @keyframes wp-tick {
-  0% { transform: translateY(-40%); opacity: 0; }
+  0% { transform: translateY(-30%); opacity: 0; }
   100% { transform: none; opacity: 1; }
 }
 .wp-tick {
   display: inline-block;
-  animation: wp-tick 320ms var(--ease-out-quart) both;
+  animation: wp-tick 240ms var(--ease-out-quart) both;
 }
 
 /* Attention pulse on the credits bar when it hits zero */
 @keyframes wp-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.5); }
-  100% { box-shadow: 0 0 0 8px rgba(251, 113, 133, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.35); }
+  100% { box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
 }
 .wp-pulse-ring {
   animation: wp-pulse-ring 1.1s ease-out 3;
@@ -259,7 +436,7 @@ button {
 
 /* Soft highlight that fades: used when a row/field was just updated */
 @keyframes wp-flash {
-  from { background-color: rgba(52, 211, 153, 0.2); }
+  from { background-color: rgba(47, 91, 255, 0.10); }
   to { background-color: transparent; }
 }
 .wp-flash {
@@ -272,28 +449,64 @@ button {
   to { background-position: 200% 0; }
 }
 .wp-skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+  background: linear-gradient(90deg, #eef1f7 25%, #f6f8fc 50%, #eef1f7 75%);
   background-size: 200% 100%;
-  animation: wp-shimmer 1.4s linear infinite;
+  animation: wp-shimmer 1.2s linear infinite;
   border-radius: 3px;
 }
 
+/* Page enter (keyed on pathname in AppShell) */
+@keyframes wp-page {
+  from { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.wp-page {
+  animation: wp-page var(--d-enter) var(--ease-out) both;
+}
+
+/* Live dot: slow breathe instead of ping */
+@keyframes wp-breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.wp-breathe {
+  animation: wp-breathe 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .wp-page,
+  .wp-breathe,
   .wp-fade-in,
   .wp-rise,
   .wp-stream,
   .wp-tick,
   .wp-pulse-ring,
+  .wp-pulse-accent,
   .wp-flash,
   .wp-skeleton {
     animation: none !important;
   }
-  button:active {
-    transform: none;
+  button:active,
+  .glass-card:hover,
+  .nav-pill-indicator {
+    transform: none !important;
+  }
+  .nav-pill-indicator {
+    transition: opacity 150ms ease !important;
   }
 }
 
 .font-serif {
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--color-neutral-950);
+}
+
+/* Attention ring on the demo button while the form is empty */
+@keyframes wp-pulse-accent {
+  0% { box-shadow: 0 0 0 0 rgba(47, 91, 255, 0.35); }
+  100% { box-shadow: 0 0 0 8px rgba(47, 91, 255, 0); }
+}
+.wp-pulse-accent {
+  animation: wp-pulse-accent 1.4s ease-out 3;
 }

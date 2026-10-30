@@ -1,0 +1,17 @@
+{
+ "company": "Mosaic Eval",
+ "domain": "mosaic.example.com",
+ "buyer_role": "Head of Research Engineering",
+ "person": null,
+ "signal": "Launched a public benchmark that executes model-written code",
+ "quote": "every submission runs model written code against hidden tests",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "mosaic.example.com"
+ ],
+ "source": "fallback"
+}

@@ -61,7 +61,7 @@ function KanbanColumn({ col, leads, people, companies, onMove, loading }: { col:
   return (
     <div
       ref={setNodeRef}
-      className={clsx("flex min-h-[320px] min-w-0 flex-col bg-surface transition-colors duration-150", isOver && "bg-emerald-50/70")}
+      className={clsx("flex min-h-[320px] min-w-0 flex-col bg-surface transition-colors duration-150", isOver && "bg-[rgba(47,91,255,0.04)] ring-1 ring-inset ring-accent/30")}
     >
       <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
         <span className="font-serif text-[14px] text-neutral-900">{col.label}</span>
@@ -104,8 +104,8 @@ function LeadCard({ lead, person, company, onMove, index }: { lead: Lead; person
       {...attributes}
       className={clsx(
         "wp-rise cursor-grab touch-none rounded-sm border border-neutral-200 bg-surface px-2.5 py-2 text-[12px] active:cursor-grabbing",
-        "transition-[box-shadow,border-color] duration-150 hover:border-neutral-300 hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_8px_24px_-8px_rgba(0,0,0,0.5)]",
-        isDragging && "z-10 rotate-[0.5deg] border-accent shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]",
+        "transition-[box-shadow,border-color] duration-150 hover:border-neutral-300 hover:shadow-[0_8px_24px_-12px_rgba(16,24,40,0.14)]",
+        isDragging && "z-10 rotate-[0.5deg] scale-[1.02] border-accent shadow-[0_12px_32px_-12px_rgba(16,24,40,0.25)]",
       )}
     >
       <div className="flex items-start justify-between gap-1">

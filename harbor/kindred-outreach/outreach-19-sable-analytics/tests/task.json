@@ -1,0 +1,17 @@
+{
+ "company": "Sable Analytics",
+ "domain": "sable.example.com",
+ "buyer_role": "Director of Engineering",
+ "person": null,
+ "signal": "Hiring Platform Engineers to run untrusted SQL and Python",
+ "quote": "run untrusted sql and python for thousands of analysts",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "sable.example.com"
+ ],
+ "source": "fallback"
+}

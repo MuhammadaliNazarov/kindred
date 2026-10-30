@@ -120,7 +120,7 @@ export function AccountsGrid(props: AccountsGridProps) {
     "hidden w-[80px] @5xl:table-cell", // headcount
     "hidden w-[100px] @4xl:table-cell", // hq
     "w-[140px]", // score
-    "", // signal (flex)
+    "hidden @2xl:table-cell", // signal (flex); hidden when the pane is too narrow to show it
     "w-[92px]", // sources
     "hidden w-[120px] @6xl:table-cell", // competitors
   ];
@@ -128,14 +128,14 @@ export function AccountsGrid(props: AccountsGridProps) {
   return (
     <div className="@container">
     <table className="w-full table-fixed border-collapse text-[12px]">
-      <thead className="sticky top-0 z-10 bg-panel shadow-[0_1px_0_rgba(255,255,255,0.09)]">
+      <thead className="sticky top-0 z-10 bg-[#fafbfd] shadow-[0_1px_0_#e6e9f0]">
         {table.getHeaderGroups().map((hg) => (
           <tr key={hg.id} className="border-b border-neutral-200">
             {hg.headers.map((h, i) => (
               <th
                 key={h.id}
                 className={clsx(
-                  "px-2 py-1.5 text-left text-[11px] font-medium tracking-wide text-neutral-500",
+                  "h-9 truncate whitespace-nowrap px-2 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-neutral-500",
                   colCls[i],
                 )}
               >
@@ -158,7 +158,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                 style={{ "--i": Math.min(i, 14) } as React.CSSProperties}
                 className={clsx(
                   "wp-rise cursor-pointer border-b border-neutral-200 align-middle transition-colors duration-100 hover:bg-neutral-50",
-                  selected && "bg-emerald-50/70 shadow-[inset_2px_0_0_#34d399] hover:bg-emerald-50",
+                  selected && "bg-[#eef2ff] shadow-[inset_2px_0_0_#2f5bff] hover:bg-[#eef2ff]",
                 )}
               >
                 {row.getAllCells().map((cell, ci) => (
@@ -181,7 +181,7 @@ export function AccountsGrid(props: AccountsGridProps) {
                     onClick={() => onSelectPerson(p)}
                     className={clsx(
                       "wp-fade-in cursor-pointer border-b border-neutral-100 bg-neutral-50/50 transition-colors duration-100 hover:bg-neutral-100/70",
-                      selectedPersonId === p.id && "bg-emerald-50 shadow-[inset_2px_0_0_#34d399] hover:bg-emerald-50",
+                      selectedPersonId === p.id && "bg-[#eef2ff] shadow-[inset_2px_0_0_#2f5bff] hover:bg-[#eef2ff]",
                     )}
                   >
                     <td colSpan={COLS} className="overflow-hidden py-1.5 pl-9 pr-2">

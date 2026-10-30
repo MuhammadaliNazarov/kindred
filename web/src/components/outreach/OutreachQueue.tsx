@@ -9,6 +9,7 @@ import { getCompanies, getLeads, getPeople, getTouches, reviewTouch } from "@/li
 import { useThinking } from "@/components/shell/context";
 import { Badge, Btn, Skeleton, TierBadge, fmtTime, uid } from "./bits";
 import { TouchCard } from "./TouchCard";
+import { buttonClass } from "@/components/ui/Button";
 
 type Action = "approve" | "edit" | "reject";
 
@@ -137,7 +138,7 @@ export function OutreachQueue() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 px-8 pb-5 pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-200 px-8 pb-6 pt-8">
         <div>
           <h1 className="k-title">
             Outreach, <span className="k-accent">reviewed</span> before it sends
@@ -151,14 +152,14 @@ export function OutreachQueue() {
             <button
               type="button"
               disabled={passing.length === 0}
-              className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-emerald-700 bg-emerald-600 px-3 text-[12px] font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className={buttonClass("primary")}
             >
-              <CheckCheck className="h-3.5 w-3.5" /> Approve all passing ({passing.length})
+              <CheckCheck className="h-4 w-4" /> Approve all passing ({passing.length})
             </button>
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-neutral-200 bg-panel p-5 shadow-lg">
+            <Dialog.Overlay className="scrim fixed inset-0 z-40" />
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 glass-3 rounded-[16px] p-5">
               <Dialog.Title className="font-serif text-lg text-neutral-900">Approve {passing.length} drafts?</Dialog.Title>
               <Dialog.Description className="mt-1.5 text-[13px] text-neutral-600">
                 Only drafts where the Reviewer and Security agents both returned <b>pass</b> are included. Each approval is logged under

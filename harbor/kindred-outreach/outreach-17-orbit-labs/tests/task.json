@@ -1,0 +1,17 @@
+{
+ "company": "Orbit Labs",
+ "domain": "orbit.example.com",
+ "buyer_role": "Staff Engineer",
+ "person": null,
+ "signal": "Announced a migration off self-hosted Firecracker VMs",
+ "quote": "orbit labs is migrating off self hosted firecracker vms",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "orbit.example.com"
+ ],
+ "source": "fallback"
+}

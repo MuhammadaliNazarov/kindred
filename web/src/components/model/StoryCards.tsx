@@ -39,11 +39,11 @@ export function PreferenceCard() {
       </div>
       <div className="mt-auto">
         {url ? (
-          <a href={url} className="inline-flex h-7 items-center rounded-sm border border-neutral-300 px-2.5 text-[12px] font-medium text-neutral-800 hover:bg-neutral-50">
+          <a href={url} className="inline-flex h-8 items-center rounded-full border border-neutral-200 bg-white px-3 text-[12px] font-medium text-neutral-800 hover:bg-[#f3f5fa]">
             Download JSONL
           </a>
         ) : (
-          <span className="text-[11px] text-neutral-500">Download JSONL needs the API (set NEXT_PUBLIC_API_URL).</span>
+          <span className="text-[11px] text-neutral-500">JSONL export is available when the API is connected.</span>
         )}
       </div>
     </Card>

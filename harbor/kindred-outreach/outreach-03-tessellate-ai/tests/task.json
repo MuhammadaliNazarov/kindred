@@ -1,0 +1,17 @@
+{
+ "company": "Tessellate AI",
+ "domain": "tessellate.example.com",
+ "buyer_role": "Staff Platform Engineer",
+ "person": "Hana Sato",
+ "signal": "Hiring an RL Environments Infrastructure Engineer",
+ "quote": "spin up thousands of short lived environments for reinforcement learning rollouts",
+ "source_url": "https://example.com/tessellate/jobs/rl-infra",
+ "lead_id": "L3",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "tessellate.example.com"
+ ],
+ "source": "lead"
+}

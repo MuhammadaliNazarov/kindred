@@ -32,8 +32,8 @@ function Bar({ value, tone = "neutral" }: { value: number; tone?: "neutral" | "o
 
 function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={clsx("overflow-hidden rounded-[20px] border border-neutral-200 bg-surface", className)}>
-      <h3 className="border-b border-neutral-200 px-3 py-2 font-serif text-[18px] text-neutral-900">{title}</h3>
+    <section className={clsx("glass overflow-hidden rounded-[16px]", className)}>
+      <h3 className="glass-band k-h3 px-4 py-3">{title}</h3>
       <div className="p-3">{children}</div>
     </section>
   );

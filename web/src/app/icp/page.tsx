@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
+import { buttonClass } from "@/components/ui/Button";
 import { ArrowRight, Ban, Check, Pencil, X } from "lucide-react";
 import type { ExpansionSegment, ICP, Source } from "@/lib/types";
 import { getExpansions, getICP, setExpansionStatus } from "@/lib/api";
@@ -14,7 +15,7 @@ function ConfidenceBar({ value }: { value: number }) {
   const tone = v >= 0.75 ? "bg-emerald-600" : v >= 0.55 ? "bg-amber-500" : "bg-rose-600";
   return (
     <span className="flex items-center gap-2" title={`Confidence ${v.toFixed(2)}`}>
-      <span className="h-1 w-20 overflow-hidden rounded-full bg-neutral-200">
+      <span className="h-1 w-10 overflow-hidden rounded-full bg-neutral-200" aria-hidden>
         <span className={clsx("block h-full transition-[width] duration-700 ease-out", tone)} style={{ width: `${v * 100}%` }} />
       </span>
       <span className="w-8 text-right font-mono text-[11px] tabular-nums text-neutral-600">{v.toFixed(2)}</span>
@@ -24,7 +25,7 @@ function ConfidenceBar({ value }: { value: number }) {
 
 function Row({ title, sub, confidence, sources }: { title: React.ReactNode; sub?: React.ReactNode; confidence: number; sources?: Source[] }) {
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 border-b border-neutral-100 py-2.5 last:border-0">
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 border-b border-neutral-100 py-2.5 last:border-0">
       <div className="min-w-0">
         <div className="text-[13px] font-medium text-neutral-900">{title}</div>
         {sub && <div className="text-[12px] text-neutral-500">{sub}</div>}
@@ -39,10 +40,10 @@ function Row({ title, sub, confidence, sources }: { title: React.ReactNode; sub?
 
 function Card({ title, count, children, className, index = 0 }: { title: string; count?: number; children: React.ReactNode; className?: string; index?: number }) {
   return (
-    <section style={{ "--i": index * 2 } as React.CSSProperties} className={clsx("wp-rise rounded-lg border border-neutral-200 bg-surface", className)}>
-      <header className="flex items-baseline justify-between border-b border-neutral-200 px-4 py-2.5">
-        <h3 className="font-serif text-[16px] tracking-tight">{title}</h3>
-        {count !== undefined && <span className="text-[11px] tabular-nums text-neutral-400">{count}</span>}
+    <section style={{ "--i": index * 2 } as React.CSSProperties} className={clsx("wp-rise glass overflow-hidden rounded-[16px]", className)}>
+      <header className="glass-band flex items-baseline justify-between px-4 py-3">
+        <h3 className="k-h3">{title}</h3>
+        {count !== undefined && <span className="text-[12px] tabular-nums text-neutral-400">{count}</span>}
       </header>
       <div className="px-4">{children}</div>
     </section>
@@ -117,8 +118,8 @@ export default function ICPPage() {
   const size = icp.company_size.value;
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8">
-      <div className="mb-5 flex items-end justify-between gap-4">
+    <div className="mx-auto max-w-6xl px-8 pb-12 pt-8">
+      <div className="mb-8 flex items-end justify-between gap-8">
         <div>
           <h1 className="k-title">Ideal <span className="k-accent">customer</span> profile</h1>
           <p className="k-sub">
@@ -126,15 +127,12 @@ export default function ICPPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-[11px] tracking-wide text-neutral-500">Mean confidence</div>
-            <div className="font-mono text-[22px] tabular-nums">{avg.toFixed(2)}</div>
+          <div className="glass-chip flex h-10 items-center gap-2 rounded-full px-4">
+            <span className="text-[12px] text-neutral-500">Mean confidence</span>
+            <span className="font-mono text-[15px] font-medium tabular-nums text-neutral-950">{avg.toFixed(2)}</span>
           </div>
-          <Link
-            href="/discovery"
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover"
-          >
-            Find accounts <ArrowRight className="h-4 w-4" />
+          <Link href="/discovery" className={buttonClass("primary")}>
+            Find companies <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -235,22 +233,21 @@ export default function ICPPage() {
             key={s.id}
             style={{ "--i": 10 + i * 2 } as React.CSSProperties}
             className={clsx(
-              "wp-rise flex flex-col rounded-lg border bg-surface p-4 transition-[opacity,border-color,box-shadow] duration-300",
-              s.status === "accepted" || s.status === "adjusted"
-                ? "border-emerald-300 shadow-[0_0_0_3px_rgba(16,185,129,0.10)]"
-                : "border-neutral-200",
+              "wp-rise glass-2 glass-card flex flex-col rounded-[16px] p-5",
+              (s.status === "accepted" || s.status === "adjusted") &&
+                "!shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5),0_0_0_4px_rgba(52,211,153,0.10),0_16px_36px_-16px_rgba(16,24,40,0.18)]",
               s.status === "dismissed" && "opacity-50",
             )}
           >
             <div className="mb-1 flex items-start justify-between gap-3">
-              <h3 className="font-serif text-[17px] leading-snug">{s.name}</h3>
+              <h3 className="k-h3">{s.name}</h3>
               <StatusTag status={s.status} />
             </div>
             <div className="mb-2">
               <ConfidenceBar value={s.confidence} />
             </div>
             <p className="mb-3 text-[13px] leading-relaxed text-neutral-700">{s.rationale}</p>
-            <div className="mb-1 text-[11px] tracking-wide text-neutral-500">Evidence</div>
+            <div className="k-label mb-1">Evidence</div>
             <ul className="mb-4 space-y-1.5">
               {s.sources.map((src, i) => (
                 <li key={src.url + i} className="text-[12px] leading-snug">
@@ -263,21 +260,21 @@ export default function ICPPage() {
               <button
                 onClick={() => update(s.id, "accepted")}
                 className={clsx(
-                  "flex flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[12px] font-medium",
-                  s.status === "accepted" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-600 text-emerald-300 hover:bg-emerald-50",
+                  "flex h-9 flex-1 items-center justify-center gap-1 rounded-full text-[13px] font-medium",
+                  s.status === "accepted" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-300 shadow-[inset_0_0_0_1px_#a7f3d0] hover:bg-emerald-100",
                 )}
               >
                 <Check className="h-3.5 w-3.5" /> Accept
               </button>
               <button
                 onClick={() => setEditing(s)}
-                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:bg-neutral-50"
+                className="flex h-9 flex-1 items-center justify-center gap-1 rounded-full bg-white text-[13px] text-neutral-900 shadow-[inset_0_0_0_1px_#e6e9f0] hover:bg-[#f3f5fa]"
               >
                 <Pencil className="h-3.5 w-3.5" /> Adjust
               </button>
               <button
                 onClick={() => update(s.id, s.status === "dismissed" ? "suggested" : "dismissed")}
-                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:border-rose-300 hover:text-rose-300"
+                className="flex h-9 flex-1 items-center justify-center gap-1 rounded-full text-[13px] text-neutral-500 hover:bg-rose-50 hover:text-rose-300"
               >
                 <X className="h-3.5 w-3.5" /> {s.status === "dismissed" ? "Restore" : "Dismiss"}
               </button>
@@ -333,8 +330,8 @@ function AdjustDialog({
   return (
     <Dialog.Root open={!!segment} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-panel p-5 shadow-lg">
+        <Dialog.Overlay className="scrim fixed inset-0 z-40" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 glass-3 rounded-[16px] p-5">
           <Dialog.Title className="font-serif text-[20px] tracking-tight">Adjust segment</Dialog.Title>
           <Dialog.Description className="mb-4 text-[12px] text-neutral-500">
             Your edit is saved as “adjusted” and logged as a rep action.

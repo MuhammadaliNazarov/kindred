@@ -1,0 +1,17 @@
+{
+ "company": "Loopwright",
+ "domain": "loopwright.example.com",
+ "buyer_role": "Head of Infrastructure",
+ "person": "Priya Raman",
+ "signal": "Hiring a Senior Infrastructure Engineer to run agent code in secure sandboxes",
+ "quote": "you will own the sandboxed execution layer that runs untrusted agent code",
+ "source_url": "https://example.com/loopwright/jobs/senior-infra",
+ "lead_id": "L1",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "loopwright.example.com"
+ ],
+ "source": "lead"
+}

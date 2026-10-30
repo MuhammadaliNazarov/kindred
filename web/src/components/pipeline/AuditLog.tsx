@@ -13,8 +13,8 @@ export function AuditLog({ events, leadLabel }: { events: AuditEvent[]; leadLabe
   const counts = { all: events.length, ai: events.filter((e) => e.actor === "ai").length, rep: events.filter((e) => e.actor === "rep").length };
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
-      <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
+    <section className="glass overflow-hidden rounded-[16px]">
+      <div className="glass-band flex items-center justify-between px-4 py-2.5">
         <h3 className="font-serif text-[18px] text-neutral-900">Audit log</h3>
         <div className="flex border border-neutral-200 text-[11px]">
           {(["all", "ai", "rep"] as const).map((f) => (
@@ -32,7 +32,7 @@ export function AuditLog({ events, leadLabel }: { events: AuditEvent[]; leadLabe
       <div className="max-h-[360px] overflow-auto">
         <table className="w-full text-[12px] tabular-nums">
           <thead className="sticky top-0 bg-panel">
-            <tr className="border-b border-neutral-200 text-left text-[11px] tracking-wider text-neutral-500">
+            <tr className="text-left text-[12px] font-medium text-neutral-400">
               <th className="px-3 py-1 font-medium">Time</th>
               <th className="px-3 py-1 font-medium">Actor</th>
               <th className="px-3 py-1 font-medium">Action</th>

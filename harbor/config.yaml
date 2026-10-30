@@ -1,0 +1,5 @@
+# harbor run -p kindred-outreach -c config.yaml   (run from harbor/)
+metrics:
+  - type: uv-script
+    kwargs:
+      script_path: metrics/per_dimension.py

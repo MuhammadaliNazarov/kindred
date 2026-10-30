@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Inter_Tight, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/shell/context";
 import { AppShell } from "@/components/shell/AppShell";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500"] });
-const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["500"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], weight: ["400", "500"] });
+const geist = Geist({ variable: "--font-geist", subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" });
+const instrumentSerif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: ["italic"], display: "swap" });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Kindred",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${interTight.variable} ${geistMono.variable} text-neutral-900 antialiased`}>
+      <body className={`${geist.variable} ${instrumentSerif.variable} ${geistMono.variable} text-neutral-900 antialiased`}>
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

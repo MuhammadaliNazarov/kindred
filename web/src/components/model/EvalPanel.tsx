@@ -59,8 +59,8 @@ export function EvalPanel() {
 
   return (
     <div className="space-y-3">
-      <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
-        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 px-3 py-2">
+      <section className="glass overflow-hidden rounded-[16px]">
+        <div className="glass-band flex flex-wrap items-center gap-2 px-4 py-3">
           <h3 className="font-serif text-[18px] text-neutral-900">Verifier metrics</h3>
           {ev.sample && <Badge tone="warn">sample</Badge>}
           {pending ? <Badge tone="warn">training in progress</Badge> : <Badge tone="ok">trained</Badge>}
@@ -89,8 +89,8 @@ export function EvalPanel() {
       {(ev.examples?.length ?? 0) > 0 && (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           {ev.examples.slice(0, 3).map((ex, i) => (
-            <section key={`${ex.company}-${i}`} className="flex flex-col overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
-              <div className="border-b border-neutral-200 px-3 py-2 font-serif text-[14px] text-neutral-900">{ex.company}</div>
+            <section key={`${ex.company}-${i}`} className="flex flex-col glass overflow-hidden rounded-[16px]">
+              <div className="glass-band px-4 py-2.5 k-h3 text-[15px]">{ex.company}</div>
               <div className="flex-1 space-y-3 p-3 text-[12px]">
                 <div>
                   <div className="mb-1 flex items-center justify-between">

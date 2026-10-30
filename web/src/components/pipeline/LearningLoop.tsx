@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonClass } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import type { BanditState } from "@/lib/types";
@@ -8,10 +9,10 @@ import { useThinking } from "@/components/shell/context";
 import { Badge, uid } from "@/components/outreach/bits";
 
 const COLORS: Record<string, string> = {
-  signal_hook__call: "#6f8dff",
-  signal_hook__doc: "#9fd3ff",
-  warmpath_hook__call: "#fbbf24",
-  warmpath_hook__doc: "#34d399",
+  signal_hook__call: "#2f5bff",
+  signal_hook__doc: "#0ea5e9",
+  warmpath_hook__call: "#f59e0b",
+  warmpath_hook__doc: "#10b981",
 };
 const label = (id: string) => id.replace("_hook__", " hook · ").replace("warmpath", "warm-path").replace(/call$/, "call CTA").replace(/doc$/, "doc CTA");
 const pct = (v: number) => `${(v * 100).toFixed(v > 0 && v < 0.1 ? 1 : 0)}%`;
@@ -35,17 +36,17 @@ function ShareChart({ data }: { data: BanditState }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="h-[140px] w-full" role="img" aria-label="Traffic share per arm over sends">
       {[0, 0.5, 1].map((v) => (
         <g key={v}>
-          <line x1={P} x2={W - 6} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
-          <text x={P - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#8d99b8">{v * 100}%</text>
+          <line x1={P} x2={W - 6} y1={y(v)} y2={y(v)} stroke="#eef1f6" strokeWidth={1} />
+          <text x={P - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="#5b6683">{v * 100}%</text>
         </g>
       ))}
-      <text x={W - 6} y={H - 6} textAnchor="end" fontSize={9} fill="#8d99b8">{maxStep} sends</text>
-      <text x={P} y={H - 6} fontSize={9} fill="#8d99b8">0</text>
+      <text x={W - 6} y={H - 6} textAnchor="end" fontSize={9} fill="#5b6683">{maxStep} sends</text>
+      <text x={P} y={H - 6} fontSize={9} fill="#5b6683">0</text>
       {data.arms.map((a) => (
         <polyline
           key={a.id}
           fill="none"
-          stroke={COLORS[a.id] ?? "#8d99b8"}
+          stroke={COLORS[a.id] ?? "#5b6683"}
           strokeWidth={2}
           strokeLinejoin="round"
           points={h.map((p) => `${x(p.step)},${y(p.shares[a.id] ?? 0)}`).join(" ")}
@@ -95,8 +96,8 @@ export function LearningLoop() {
   }
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2">
+    <section className="glass overflow-hidden rounded-[16px]">
+      <div className="glass-band flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <h3 className="whitespace-nowrap font-serif text-[18px] text-neutral-900">Learning loop</h3>
           <span className="hidden text-[11px] text-neutral-500 md:inline">Thompson sampling over hook × CTA · reward = reply</span>
@@ -105,14 +106,14 @@ export function LearningLoop() {
         </div>
         <div className="flex items-center gap-2">
           {data?.simulated && (
-            <button onClick={reset} disabled={busy} className="rounded-sm border border-neutral-300 px-2 py-1 text-[12px] text-neutral-700 hover:bg-neutral-50 disabled:opacity-50">
+            <button onClick={reset} disabled={busy} className={buttonClass("ghost")}>
               Show real
             </button>
           )}
           <button
             onClick={simulate}
             disabled={busy}
-            className="rounded-sm border border-accent bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+            className={buttonClass("secondary")}
           >
             <span className="whitespace-nowrap">{busy ? "Simulating…" : "Simulate 300 sends"}</span>
           </button>

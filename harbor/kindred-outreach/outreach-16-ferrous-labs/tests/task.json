@@ -1,0 +1,17 @@
+{
+ "company": "Ferrous Labs",
+ "domain": "ferrous.example.com",
+ "buyer_role": "Staff Engineer",
+ "person": null,
+ "signal": "Hiring a Runtime Engineer for sandboxed Python execution",
+ "quote": "build the sandboxed python runtime behind our agent",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "ferrous.example.com"
+ ],
+ "source": "fallback"
+}

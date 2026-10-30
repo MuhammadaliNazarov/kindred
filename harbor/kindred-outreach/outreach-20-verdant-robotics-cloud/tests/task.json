@@ -1,0 +1,17 @@
+{
+ "company": "Verdant Robotics Cloud",
+ "domain": "verdant.example.com",
+ "buyer_role": "VP Platform",
+ "person": null,
+ "signal": "Raised a $14M Series A for simulation-as-a-service",
+ "quote": "verdant raised a 14 million series a for simulation as a service",
+ "source_url": null,
+ "lead_id": null,
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "verdant.example.com"
+ ],
+ "source": "fallback"
+}

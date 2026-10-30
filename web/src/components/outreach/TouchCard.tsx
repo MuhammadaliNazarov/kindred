@@ -48,8 +48,8 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
     <article
       style={{ "--i": index } as React.CSSProperties}
       className={clsx(
-        "wp-rise rounded-sm border bg-surface transition-[opacity,border-color,box-shadow] duration-300",
-        decided ? "border-neutral-200 opacity-75" : "border-neutral-300 shadow-[0_1px_2px_rgba(0,0,0,0.2),0_10px_30px_-12px_rgba(0,0,0,0.6)]",
+        "wp-rise overflow-hidden rounded-[16px] border bg-white transition-[opacity,border-color,box-shadow] duration-300",
+        decided ? "border-neutral-200 opacity-75" : "border-neutral-300 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)]",
         touch.status === "approved" || touch.status === "sent" ? "border-emerald-300" : "",
         touch.status === "rejected" ? "border-rose-200" : "",
       )}
@@ -81,7 +81,7 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
             )}
           >
             {signal.source.verified ? <ShieldCheck className="h-3 w-3 shrink-0" /> : <ShieldAlert className="h-3 w-3 shrink-0" />}
-            <span className="shrink-0 text-[11px] font-medium tracking-wide">{signal.source.verified ? "Proved" : "Dropped"}</span>
+            <span className="shrink-0 text-[11px] font-medium tracking-wide">{signal.source.verified ? "Proved" : "Unverified · dropped"}</span>
             <span className="truncate border-l border-white/15 pl-1.5">{signal.source.title || signal.source.url}</span>
             <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
           </a>
@@ -129,9 +129,9 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
 
       {/* Verdicts */}
       <div className="grid grid-cols-2 gap-px border-t border-neutral-200 bg-neutral-200 text-[12px]">
-        <div className="bg-surface px-3 py-1.5">
+        <div className="bg-[#fafbfd] px-3 py-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-medium tracking-wider text-neutral-500">Reviewer</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-neutral-500">Reviewer</span>
             <Badge tone={verdictTone(touch.review.verdict)}>{touch.review.verdict}</Badge>
             {touch.review.score !== undefined && (
               <span className="text-[11px] tabular-nums text-neutral-500" title="Verifier score = the GRPO reward">
@@ -142,20 +142,21 @@ export function TouchCard({ touch, signal, busy, index = 0, onApprove, onEdit, o
           </div>
           <div className="mt-0.5 text-neutral-600">{touch.review.notes}</div>
           {touch.review.checks && touch.review.checks.length > 0 && (
-            <ul className="mt-1 space-y-px text-[11px]">
+            <ul className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
               {touch.review.checks.map((c) => (
-                <li key={c.name} className={clsx("flex gap-1", c.pass ? "text-emerald-300" : "text-rose-300")} title={c.detail}>
+                <li key={c.name} className={clsx("flex min-w-0 items-baseline gap-1 whitespace-nowrap", c.pass ? "text-emerald-300" : "text-rose-300", !c.pass && c.detail && "col-span-2 flex-wrap")} title={c.detail}>
                   <span aria-hidden>{c.pass ? "✓" : "✗"}</span>
-                  <span>{c.name}</span>
-                  {!c.pass && c.detail && <span className="truncate text-neutral-500">· {c.detail}</span>}
+                  <span className="sr-only">{c.pass ? "passed:" : "failed:"}</span>
+                  <span className="truncate">{c.name}</span>
+                  {!c.pass && c.detail && <span className="w-full truncate pl-3 text-neutral-500">{c.detail}</span>}
                 </li>
               ))}
             </ul>
           )}
         </div>
-        <div className="bg-surface px-3 py-1.5">
+        <div className="bg-[#fafbfd] px-3 py-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-medium tracking-wider text-neutral-500">Security</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-neutral-500">Security</span>
             <Badge tone={secFail ? "fail" : "ok"}>
               {secFail ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
               {touch.security.verdict}

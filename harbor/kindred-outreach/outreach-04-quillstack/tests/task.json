@@ -1,0 +1,17 @@
+{
+ "company": "Quillstack",
+ "domain": "quillstack.example.com",
+ "buyer_role": "VP Engineering",
+ "person": "Leo Fischer",
+ "signal": "Launched an agent that runs customer code to answer support tickets",
+ "quote": "our new agent runs your code to reproduce the bug before it answers",
+ "source_url": "https://example.com/quillstack/blog/agent-launch",
+ "lead_id": "L4",
+ "product": "Tenki",
+ "product_url": "https://tenki.cloud",
+ "allowed_domains": [
+  "tenki.cloud",
+  "quillstack.example.com"
+ ],
+ "source": "lead"
+}

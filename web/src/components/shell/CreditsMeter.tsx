@@ -67,15 +67,15 @@ export function CreditsMeter() {
       <Tooltip.Provider delayDuration={150}>
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
-            <button className="no-press flex h-7 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2 hover:bg-neutral-50" aria-label="Credits">
-              <span className="text-[11px] tracking-wide text-neutral-500">Credits</span>
-              <span className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-200">
+            <button className="no-press flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 hover:bg-black/[0.04]" aria-label="Credits">
+              <span className="text-[12px] text-neutral-500">Credits</span>
+              <span className="h-1.5 w-24 overflow-hidden rounded-full bg-[#e6e9f2]" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label="Credits remaining">
                 <span
                   className={clsx(
-                    "block h-full rounded-full transition-[width,background-color] duration-500 ease-out",
-                    credits.blocked ? "bg-rose-600" : low ? "bg-amber-500" : "bg-emerald-600",
+                    "block h-full w-full origin-left rounded-full transition-[transform,background-color] duration-[600ms] ease-[cubic-bezier(0.77,0,0.175,1)]",
+                    credits.blocked ? "bg-rose-600" : low ? "bg-amber-500" : "bg-gradient-to-r from-accent to-[#5b7cff]",
                   )}
-                  style={{ width: `${pct}%` }}
+                  style={{ transform: `scaleX(${pct / 100})` }}
                 />
               </span>
               <span className={clsx("text-[12px] tabular-nums", credits.blocked && "font-medium text-rose-300")}>
@@ -87,7 +87,7 @@ export function CreditsMeter() {
           <Tooltip.Portal>
             <Tooltip.Content
               sideOffset={6}
-              className="z-50 w-56 rounded-md border border-neutral-200 bg-panel p-3 text-[12px] shadow-md"
+              className="glass-3 z-50 w-56 rounded-[16px] p-3 text-[12px]"
             >
               <div className="mb-2 font-medium">Usage by event (Flexprice)</div>
               <table className="w-full tabular-nums">

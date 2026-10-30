@@ -35,7 +35,7 @@ export function SourceChip({ source, index }: { source: Source; index?: number }
           </a>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content sideOffset={6} className="z-50 w-72 rounded-md border border-neutral-200 bg-panel p-3 text-[12px] shadow-sm">
+          <Tooltip.Content sideOffset={6} className="glass-3 z-50 w-72 rounded-[16px] p-3 text-[12px]">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="truncate font-medium">{source.title}</span>
               <span
