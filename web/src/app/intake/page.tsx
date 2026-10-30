@@ -193,6 +193,7 @@ export default function IntakePage() {
   const analyzedUrl = useRef<string | null>(null);
   const [quickUrl, setQuickUrl] = useState("");
   const [quickAbout, setQuickAbout] = useState("");
+  const [analyzedOnce, setAnalyzedOnce] = useState(false);
 
   useEffect(() => {
     formRef.current = form;
@@ -263,6 +264,7 @@ export default function IntakePage() {
       setMsgs((m) => [...m, { role: "assistant", text: summary, sources }, ...(follow ? [follow] : [])]);
     } finally {
       setAnalyzing(false);
+      setAnalyzedOnce(true);
     }
   }
 
@@ -492,7 +494,7 @@ export default function IntakePage() {
           <span className="text-[12px] tabular-nums text-neutral-400">{5 - missing.length} of 5 complete</span>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-2 [&>fieldset+fieldset]:shadow-[inset_0_1px_0_#eef1f6]">
-          <Group title="Your product" done={!missing.includes("basics")} flash={flash === "basics"}>
+          <Group flagMissing={analyzedOnce} title="Your product" done={!missing.includes("basics")} flash={flash === "basics"}>
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3">
               <Field label="Name" value={form.product_name} onChange={(v) => set("product_name", v)} />
               <div className="flex items-end gap-2">
@@ -522,10 +524,10 @@ export default function IntakePage() {
             <Field label="Description" value={form.description} onChange={(v) => set("description", v)} area />
             <Field label="Features (comma separated)" value={form.features.join(", ")} onChange={(v) => set("features", list(v))} />
           </Group>
-          <Group title="Your best customer" done={!missing.includes("best")} flash={flash === "best"}>
+          <Group flagMissing={analyzedOnce} title="Your best customer" done={!missing.includes("best")} flash={flash === "best"}>
             <Field label="Reference customers" value={form.reference_customers.join(", ")} onChange={(v) => set("reference_customers", list(v))} />
           </Group>
-          <Group title="Price per customer (per year)" done={!missing.includes("acv")} flash={flash === "acv"}>
+          <Group flagMissing={analyzedOnce} title="Price per customer (per year)" done={!missing.includes("acv")} flash={flash === "acv"}>
             <div className="grid grid-cols-[140px_1fr] gap-3">
               <Field
                 label="ACV (USD)"
@@ -536,10 +538,10 @@ export default function IntakePage() {
               <Field label="Pricing model" value={form.pricing_model} onChange={(v) => set("pricing_model", v)} />
             </div>
           </Group>
-          <Group title="A deal you lost" done={!missing.includes("lost")} flash={flash === "lost"}>
+          <Group flagMissing={analyzedOnce} title="A deal you lost" done={!missing.includes("lost")} flash={flash === "lost"}>
             <Field label="What happened" value={form.lost_deal ?? ""} onChange={(v) => set("lost_deal", v)} area />
           </Group>
-          <Group title="Your past employers and schools" done={!missing.includes("past")} flash={flash === "past"} hint="Used to find warm intros">
+          <Group flagMissing={analyzedOnce} title="Your past employers and schools" done={!missing.includes("past")} flash={flash === "past"} hint="Used to find warm intros">
             <Field label="Comma separated" value={(form.past_employers ?? []).join(", ")} onChange={(v) => set("past_employers", list(v))} />
           </Group>
           <Group title="Who to avoid" done flash={false}>
@@ -552,9 +554,10 @@ export default function IntakePage() {
   );
 }
 
-function Group({ title, done, flash, hint, children }: { title: string; done: boolean; flash: boolean; hint?: string; children: React.ReactNode }) {
+function Group({ title, done, flash, hint, flagMissing, children }: { title: string; done: boolean; flash: boolean; hint?: string; flagMissing?: boolean; children: React.ReactNode }) {
+  const missingFlag = !!flagMissing && !done;
   return (
-    <fieldset className={clsx("-mx-2 rounded-[16px] px-2 py-4 transition-colors duration-500", flash && "bg-emerald-50")}>
+    <fieldset className={clsx("-mx-2 rounded-[16px] px-2 py-4 transition-colors duration-500", flash && "bg-emerald-50", missingFlag && "bg-rose-50 ring-1 ring-rose-300")}>
       <legend className="sr-only">{title}</legend>
       <div aria-hidden className="mb-3 flex items-center gap-2 text-[13px] font-medium text-neutral-950">
         <span
@@ -567,6 +570,7 @@ function Group({ title, done, flash, hint, children }: { title: string; done: bo
         </span>
         {title}
         {hint && <span className="font-normal text-neutral-400">· {hint}</span>}
+        {missingFlag && <span className="ml-auto rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-medium text-white">Missing: please fill in</span>}
       </div>
       <div className="space-y-3">{children}</div>
     </fieldset>
