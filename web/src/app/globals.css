@@ -310,7 +310,12 @@ p {
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.01em;
-  font-size: 1.08em;
+  font-size: 1.3em;
+  line-height: 0.9;
+  padding: 0 0.12em;
+  /* marker highlight under the accent word */
+  background: linear-gradient(transparent 58%, rgba(47, 91, 255, 0.16) 58%, rgba(47, 91, 255, 0.16) 92%, transparent 92%);
+  -webkit-text-stroke: 0.6px currentColor;
 }
 
 /* Numbers, scores, code: Geist Mono, tabular */
