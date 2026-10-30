@@ -216,11 +216,15 @@ export default function IntakePage() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
       {/* Chat */}
       <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
         <div className="glass-band flex h-12 shrink-0 items-center px-5">
-          <h2 className="k-h3">Conversation</h2>
+          <div className="flex items-center gap-2.5">
+            <svg width="22" height="22" viewBox="0 0 40 40" aria-hidden="true"><circle cx="15" cy="20" r="10" fill="none" stroke="#2f5bff" strokeWidth="3.2"/><circle cx="25" cy="20" r="10" fill="none" stroke="#9fd3ff" strokeWidth="3.2"/></svg>
+            <h2 className="k-h3">Kindred AI</h2>
+            <span className="text-[12px] text-neutral-500">GTM assistant</span>
+          </div>
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
           {msgs.map((m, i) => (
