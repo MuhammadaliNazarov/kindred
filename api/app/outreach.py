@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import HTTPException
 
-from . import billing, graph, llm, pipeline, state, thinking
+from . import bandit, billing, graph, llm, pipeline, state, thinking, verifier
 from .models import Review, Security, Touch
 
 PERSONA_RULES = {
@@ -23,6 +23,8 @@ COPY_SYSTEM = """You are the Builder/Copy agent. Write a 3-touch outbound sequen
 Rules: open with the ONE cited signal (say what and when, in plain words); only state facts present in the signal or warm path;
 mention the warm path connector by first name if one exists; no links except the product URL given; no emails/phone numbers;
 no tracking links. Variant A = signal-led subject; Variant B = warm-path/question-led subject.
+Follow the "hook" (how step 1 opens) and "cta" (the closing question) given in the input exactly. Step 1 email body: 30-90 words,
+name the company, and end with the CTA as a question (sign-off after it is fine). Never promise or guarantee outcomes.
 Return {"touches":[{"step":1,"channel":"email","subject":str,"body":str},{"step":2,"channel":"email","subject":str,"body":str},{"step":3,"channel":"linkedin","body":str}]}"""
 
 
@@ -30,7 +32,7 @@ def _first(name: str) -> str:
     return name.split()[0] if name else "there"
 
 
-def _fallback(person, co, sig, hops, variant, product, product_url) -> dict:
+def _fallback(person, co, sig, hops, variant, product, product_url, arm: str | None = None) -> dict:
     # hops (edge direction kept): You→PastCo, Connector→PastCo, Connector→TargetCo, Buyer→TargetCo
     connector = hops[0].to if hops else None
     connector_person = hops[1].from_ if len(hops) >= 3 else None
@@ -40,9 +42,11 @@ def _fallback(person, co, sig, hops, variant, product, product_url) -> dict:
         s1 = f"{co.name}: {sig.summary[:60]}"
     else:
         s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
-    body1 = (f"Hi {_first(person.name)},\n\n{warm if variant == 'B' else ''}{sig_line}\n\n"
-             f"Teams in that spot usually end up building sandbox infra for agent code themselves. {product} gives you that as an API, "
-             f"so your engineers stay on the product.\n\n{warm if variant == 'A' else ''}Worth a short look? {product_url}\n\n— Ali")
+    hook, cta = bandit.split(arm) if arm else ("signal_hook" if variant == "A" else "warmpath_hook", "call")
+    cta_line = bandit.CTAS.get(cta, "Worth a short look?")
+    body1 = (f"Hi {_first(person.name)},\n\n{warm if hook == 'warmpath_hook' else ''}{sig_line}\n\n"
+             f"Teams in that spot often build sandbox infra for agent code themselves. {product} ({product_url}) gives you that as an API, "
+             f"so {co.name} engineers stay on the product.\n\n{warm if hook != 'warmpath_hook' else ''}{cta_line}\n\n— Ali")
     body2 = (f"Hi {_first(person.name)}, following up on the {sig.type.replace('_', ' ')} from {sig.date}. "
              f"If the sandbox work is already scoped, happy to share how other agent teams cut it from a quarter to a week with {product}. Reply 'yes' and I'll send a short plan.")
     body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
@@ -74,7 +78,7 @@ def review(t: Touch, lead) -> Review:
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", t.body + " " + (t.subject or "")) if s.strip()]
     unsupported = []
     for s in sentences:
-        if not CLAIM_HINT.search(s):
+        if not CLAIM_HINT.search(s) or s.endswith("?"):  # the CTA question is not a factual claim
             continue
         w = _words(s)
         if w and len(w & ctx) / len(w) < 0.4:
@@ -84,10 +88,17 @@ def review(t: Touch, lead) -> Review:
         note = "Signal source is demo/unverified (verified:false). "
     else:
         note = ""
+    allowed = [co.domain if co else "", urlparse(state.intake.product_url).netloc if state.intake else "tenki.cloud"]
+    v = verifier.verify(t.body, co.name if co else "", (sig.summary + " " + sig.type.replace("_", " ")) if sig else "",
+                        context=ctx_txt, allowed_domains=allowed)
+    vnote = f"verifier {v['score']}/{v['max']}. "
+    hard_fail = any(not c["pass"] for c in v["checks"] if c["name"] in ("no outcome guarantees", "links only to allowed domains"))
+    extra = dict(score=v["score"], max_score=v["max"], checks=v["checks"])
     if not unsupported:
-        return Review(verdict="pass", notes=note + f"All factual claims map to the lead's {len(sources)} source(s).")
+        verdict = "fix" if hard_fail else "pass"
+        return Review(verdict=verdict, notes=vnote + note + f"All factual claims map to the lead's {len(sources)} source(s).", **extra)
     verdict = "fix" if len(unsupported) <= 2 else "fail"
-    return Review(verdict=verdict, notes=note + "Unsupported claims: " + " | ".join(unsupported))
+    return Review(verdict=verdict, notes=vnote + note + "Unsupported claims: " + " | ".join(unsupported), **extra)
 
 
 # ---------------- Security ----------------
@@ -137,28 +148,37 @@ def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
     thinking.emit("planner", "handoff", f"Planner → Builder: draft 3 touches for {p.name} @ {co.name} (variant {lead.variant})")
     hops, _ = graph.warm_path(graph.ME, p.id)
     state_warm[lead.id] = hops
+    arm = bandit.choose()
+    hook, cta = bandit.split(arm)
+    if hook == "warmpath_hook" and not hops:
+        arm, hook = f"signal_hook__{cta}", "signal_hook"  # no warm path to lead with
+    lead.variant = "A" if hook == "signal_hook" else "B"
+    pol = bandit.policy()
+    a_, b_ = pol.stats[arm]
+    thinking.emit("planner", "reason", f"Bandit: Thompson sample picked {arm} for {co.name} (Beta({a_},{b_}), mean p={a_ / (a_ + b_):.2f})")
     product = state.intake.product_name if state.intake else "Tenki"
     product_url = state.intake.product_url if state.intake else "https://tenki.cloud"
     rules = PERSONA_RULES.get("c-level" if "c" in p.seniority.lower()[:1] else "ic" if p.seniority.lower() == "ic" else "director")
     prompt = json.dumps({"variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
                          "signal": {"type": sig.type, "summary": sig.summary, "date": sig.date, "source_url": sig.source.url, "quote": sig.source.quote},
-                         "warm_path": [h.model_dump() for h in hops], "persona_rules": rules})
-    fb = lambda: _fallback(p, co, sig, hops, lead.variant, product, product_url)
+                         "warm_path": [h.model_dump() for h in hops], "persona_rules": rules,
+                         "hook": bandit.HOOKS[hook], "cta": bandit.CTAS[cta]})
+    fb = lambda: _fallback(p, co, sig, hops, lead.variant, product, product_url, arm)
     data = llm.json_call("builder", COPY_SYSTEM, prompt, fb)[0] if use_llm else fb()
     if not isinstance(data, dict) or len(data.get("touches", [])) < 3:
-        data = _fallback(p, co, sig, hops, lead.variant, product, product_url)
+        data = _fallback(p, co, sig, hops, lead.variant, product, product_url, arm)
     # replace previous drafts for this lead (keep sent ones)
     for tid in [k for k, t in state.touches.items() if t.lead_id == lead_id and t.status != "sent"]:
         del state.touches[tid]
     out = []
     for raw in data["touches"][:3]:
         t = Touch(id=state.new_id("t"), lead_id=lead_id, step=int(raw.get("step", len(out) + 1)), channel="linkedin" if raw.get("channel") == "linkedin" else "email",
-                  subject=raw.get("subject") if raw.get("channel") != "linkedin" else None, body=raw["body"], signal_id=sig.id, variant=lead.variant,
+                  subject=raw.get("subject") if raw.get("channel") != "linkedin" else None, body=raw["body"], signal_id=sig.id, variant=lead.variant, arm=arm,
                   status="draft", review=Review(verdict="pass", notes=""), security=Security(verdict="pass", notes=""))
         check(t, lead)
         state.touches[t.id] = t
         out.append(t)
-    state.log("ai", "drafted", f"3 touches (variant {lead.variant}) citing {sig.source.url}", agent="builder", lead_id=lead_id)
+    state.log("ai", "drafted", f"3 touches (variant {lead.variant}, arm {arm}) citing {sig.source.url}", agent="builder", lead_id=lead_id)
     thinking.emit("builder", "handoff", f"Builder → HITL queue: {len(out)} drafts await human approval")
     return out
 

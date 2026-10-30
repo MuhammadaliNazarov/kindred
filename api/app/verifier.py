@@ -43,7 +43,7 @@ def checks(text: str, company: str, signal: str, context: str | None = None,
     unsupported = []
     for s in re.split(r"(?<=[.!?])\s+|\n+", text):
         s = s.strip()
-        if not s or not CLAIM_HINT.search(s) or URL_RE.fullmatch(s):
+        if not s or not CLAIM_HINT.search(s) or s.endswith("?") or URL_RE.fullmatch(s):
             continue
         w = _words(URL_RE.sub("", s))
         if w and len(w & ctx) / len(w) < 0.4:

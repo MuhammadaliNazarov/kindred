@@ -15,6 +15,8 @@ import type {
   ThinkingStep,
   Touch,
   WarmPath,
+  BanditState,
+  VerifyResult,
 } from "./types";
 import {
   seedAudit,
@@ -202,7 +204,7 @@ export async function enrichLead(personId: string): Promise<EnrichResult> {
 }
 
 // ---------- Outreach ----------
-export const getTouches = () => call<Touch[]>("/touches", () => db.touches);
+export const getTouches = () => call<Touch[]>("/touches", () => db.touches.map(withVerifier));
 
 export function reviewTouch(id: string, action: "approve" | "edit" | "reject", body?: string): Promise<Touch | null> {
   const local = () => {
@@ -315,3 +317,137 @@ export function streamThinking(onStep: (s: ThinkingStep) => void): () => void {
     if (timer) clearInterval(timer);
   };
 }
+
+// ---------- Learning loop: verifier (same rules as api/app/verifier.py) ----------
+const BANNED = /\b(guarantee[ds]?|guaranteed|100%|risk[- ]free|promise[ds]?|zero risk|never fail)\b/i;
+const URL_RE = /https?:\/\/[^\s)>\]]+/gi;
+const STOPW = new Set("the a an and or to of in on for at by with is are was were be this that it its your you we our i from as about".split(" "));
+const CLAIM = /\d|raised|hiring|hired|launch|announc|post|migrat|series|seed|funding|joined|outage|pricing/i;
+const wordsOf = (s: string) => new Set((s.toLowerCase().match(/[a-z0-9$%]+/g) ?? []).filter((w) => !STOPW.has(w) && w.length > 2));
+
+export function localVerify(text: string, company: string, signal: string, context = "", allowed: string[] = ["tenki.cloud"]): VerifyResult {
+  const low = text.toLowerCase();
+  const n = text.split(/\s+/).filter(Boolean).length;
+  const sigW = Array.from(wordsOf(signal));
+  const tw = wordsOf(text);
+  const sigHit =
+    signal.toLowerCase().split(/\s+/).slice(-3).some((w) => w.length > 2 && low.includes(w)) ||
+    (sigW.length > 0 && sigW.filter((w) => tw.has(w)).length >= Math.max(1, Math.min(2, Math.floor(sigW.length / 3))));
+  const lines = text.trim().split(/\n+/).filter((l) => l.trim());
+  while (lines.length && (/^\s*(—|--|-|–|cheers|best|thanks)\b/i.test(lines[lines.length - 1]) || (lines[lines.length - 1].split(/\s+/).length <= 2 && !lines[lines.length - 1].trim().endsWith("?")))) lines.pop();
+  const last = lines.join("\n").replace(URL_RE, "").trim();
+  const ctx = wordsOf(`${context} ${signal} ${company}`);
+  const unsupported = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((x) => x.trim())
+    .filter((x) => x && CLAIM.test(x) && !x.endsWith("?"))
+    .filter((x) => {
+      const w = Array.from(wordsOf(x.replace(URL_RE, "")));
+      return w.length > 0 && w.filter((y) => ctx.has(y)).length / w.length < 0.4;
+    });
+  const badLinks = (text.match(URL_RE) ?? [])
+    .map((u) => { try { return new URL(u).host.replace("www.", ""); } catch { return u; } })
+    .filter((h) => !allowed.some((d) => h === d || h.endsWith("." + d)));
+  const checks = [
+    { name: "company mentioned", pass: !!company && low.includes(company.toLowerCase()), w: 1, f: 0 },
+    { name: "cites the signal", pass: sigHit, w: 1, f: 0 },
+    { name: "ends with a question CTA", pass: last.endsWith("?"), w: 1, f: 0 },
+    { name: `30–90 words (${n})`, pass: n >= 30 && n <= 90, w: 0.5, f: -0.5 },
+    { name: "every claim has a source", pass: unsupported.length === 0, w: 1, f: 0, detail: unsupported.join(" | ") || undefined },
+    { name: "no outcome guarantees", pass: !BANNED.test(text), w: 0, f: -2 },
+    { name: "links only to allowed domains", pass: badLinks.length === 0, w: 0, f: -1, detail: badLinks.join(", ") || undefined },
+  ];
+  const score = checks.reduce((a, c) => a + (c.pass ? c.w : c.f), 0);
+  return { score: Math.round(score * 100) / 100, max: 4.5, checks: checks.map(({ name, pass, detail }) => (detail ? { name, pass, detail } : { name, pass })) };
+}
+
+function withVerifier(t: Touch): Touch {
+  if (t.review.checks) return t;
+  const co = db.companies.find((c) => c.signals?.some((s) => s.id === t.signal_id));
+  const sig = co?.signals.find((s) => s.id === t.signal_id);
+  if (!co || !sig) return t;
+  const v = localVerify(t.body, co.name, `${sig.summary} ${sig.type.replace("_", " ")}`, `${sig.source?.quote ?? ""} ${sig.date}`, [co.domain, "tenki.cloud"]);
+  return { ...t, review: { ...t.review, score: v.score, max_score: v.max, checks: v.checks, notes: t.review.notes.startsWith("verifier") ? t.review.notes : `verifier ${v.score}/${v.max}. ${t.review.notes}` } };
+}
+
+export const verifyText = (text: string, company: string, signal: string) =>
+  call<VerifyResult>("/verify", () => localVerify(text, company, signal), post({ text, company, signal }));
+
+// ---------- Learning loop: Thompson-sampling bandit ----------
+const ARMS = [
+  { id: "signal_hook__call", hook: "signal_hook", cta: "call", hook_text: "Lead with the cited signal", cta_text: "Worth a 15-min call this week?" },
+  { id: "signal_hook__doc", hook: "signal_hook", cta: "doc", hook_text: "Lead with the cited signal", cta_text: "Want the one-page agent-sandbox architecture doc?" },
+  { id: "warmpath_hook__call", hook: "warmpath_hook", cta: "call", hook_text: "Lead with the warm-path connector", cta_text: "Worth a 15-min call this week?" },
+  { id: "warmpath_hook__doc", hook: "warmpath_hook", cta: "doc", hook_text: "Lead with the warm-path connector", cta_text: "Want the one-page agent-sandbox architecture doc?" },
+];
+// SIMULATED true reply rates (demo only) — mirrors api/app/bandit.py.
+const SIM_RATES: Record<string, number> = { signal_hook__call: 0.04, signal_hook__doc: 0.07, warmpath_hook__call: 0.06, warmpath_hook__doc: 0.11 };
+
+function mulberry(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gamma(k: number, r: () => number): number {
+  if (k < 1) return gamma(k + 1, r) * Math.pow(r(), 1 / k);
+  const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x: number, v: number;
+    do {
+      const u1 = r() || 1e-12, u2 = r();
+      x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      v = 1 + c * x;
+    } while (v <= 0);
+    v = v * v * v;
+    const u = r();
+    if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+const beta = (a: number, b: number, r: () => number) => { const x = gamma(a, r); return x / (x + gamma(b, r)); };
+
+type Stats = Record<string, [number, number]>;
+const freshStats = (): Stats => Object.fromEntries(ARMS.map((a) => [a.id, [1, 1]])) as Stats;
+const pick = (st: Stats, r: () => number) => ARMS.map((a) => a.id).reduce((best, id) => {
+  const s = beta(st[id][0], st[id][1], r);
+  return s > best.s ? { id, s } : best;
+}, { id: ARMS[0].id, s: -1 }).id;
+function shares(st: Stats): Record<string, number> {
+  const r = mulberry(7);
+  const wins: Record<string, number> = Object.fromEntries(ARMS.map((a) => [a.id, 0]));
+  for (let i = 0; i < 300; i++) wins[pick(st, r)]++;
+  return Object.fromEntries(ARMS.map((a) => [a.id, Math.round((wins[a.id] / 300) * 1000) / 1000]));
+}
+function banditState(st: Stats, history: BanditState["history"], simulated: boolean): BanditState {
+  const sh = shares(st);
+  const arms = ARMS.map((a) => {
+    const [al, be] = st[a.id];
+    return { ...a, sent: al + be - 2, replies: al - 1, mean: Math.round((al / (al + be)) * 1000) / 1000, share: sh[a.id] };
+  });
+  return { arms, history, simulated, total_sent: arms.reduce((n, a) => n + a.sent, 0) };
+}
+let localBandit: BanditState = banditState(freshStats(), [{ step: 0, shares: shares(freshStats()) }], false);
+
+function localSimulate(sends: number, seed = Date.now() % 100000): BanditState {
+  const r = mulberry(seed);
+  const st = freshStats();
+  const history: BanditState["history"] = [{ step: 0, shares: shares(st) }];
+  const every = Math.max(1, Math.floor(sends / 30));
+  for (let i = 1; i <= sends; i++) {
+    const arm = pick(st, r);
+    st[arm][r() < SIM_RATES[arm] ? 0 : 1]++;
+    if (i % every === 0 || i === sends) history.push({ step: i, shares: shares(st) });
+  }
+  localBandit = banditState(st, history, true);
+  return localBandit;
+}
+
+export const getBandit = () => call<BanditState>("/bandit", () => localBandit);
+export const simulateBandit = (sends = 300, seed?: number) =>
+  call<BanditState>("/bandit/simulate", () => localSimulate(sends, seed), post({ sends, seed }));
+export const resetBanditSim = () =>
+  call<BanditState>("/bandit/reset", () => (localBandit = banditState(freshStats(), [{ step: 0, shares: shares(freshStats()) }], false)), post());

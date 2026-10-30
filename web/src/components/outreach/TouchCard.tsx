@@ -120,8 +120,25 @@ export function TouchCard({ touch, signal, busy, onApprove, onEdit, onReject }: 
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Reviewer</span>
             <Badge tone={verdictTone(touch.review.verdict)}>{touch.review.verdict}</Badge>
+            {touch.review.score !== undefined && (
+              <span className="text-[10px] tabular-nums text-neutral-500" title="Verifier score = the GRPO reward">
+                verifier {touch.review.score}/{touch.review.max_score ?? 4.5}
+              </span>
+            )}
+            {touch.arm && <span className="text-[10px] text-neutral-400" title="Bandit arm (hook × CTA)">{touch.arm}</span>}
           </div>
           <div className="mt-0.5 text-neutral-600">{touch.review.notes}</div>
+          {touch.review.checks && touch.review.checks.length > 0 && (
+            <ul className="mt-1 space-y-px text-[11px]">
+              {touch.review.checks.map((c) => (
+                <li key={c.name} className={clsx("flex gap-1", c.pass ? "text-emerald-700" : "text-rose-700")} title={c.detail}>
+                  <span aria-hidden>{c.pass ? "✓" : "✗"}</span>
+                  <span>{c.name}</span>
+                  {!c.pass && c.detail && <span className="truncate text-neutral-500">· {c.detail}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="bg-white px-3 py-1.5">
           <div className="flex items-center gap-1.5">

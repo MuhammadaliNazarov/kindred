@@ -13,7 +13,8 @@ from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sse_starlette.sse import EventSourceResponse  # noqa: E402
 
-from . import billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking  # noqa: E402
+from . import bandit, billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking, verifier  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
 from .models import (AuditEvent, Company, Credits, ExpansionSegment, ExpansionUpdate, GraphData, ICP, Intake, Lead,  # noqa: E402
                      MoveBody, Person, ReviewBody, ThinkingStep, Touch, WarmPath)
 
@@ -185,3 +186,52 @@ def get_thinking(limit: int = 200):
 @app.get("/thinking/stream")
 async def thinking_stream(request: Request):
     return EventSourceResponse(thinking.stream(request), ping=15)
+
+
+# ---------- learning loop: bandit + verifier ----------
+class ReplyHook(BaseModel):
+    lead_id: str
+
+
+class SimBody(BaseModel):
+    sends: int = 300
+    seed: Optional[int] = None
+
+
+class VerifyBody(BaseModel):
+    text: str
+    company: str = ""
+    signal: str = ""
+
+
+@app.get("/bandit")
+def get_bandit():
+    return bandit.summary()
+
+
+@app.post("/bandit/simulate")
+def simulate_bandit(body: SimBody = SimBody()):
+    return bandit.simulate(max(1, min(body.sends, 5000)), body.seed)
+
+
+@app.post("/bandit/reset")
+def reset_bandit_sim():
+    """Clear the SIMULATED overlay; GET /bandit then shows real reply-learned stats."""
+    return bandit.reset_sim()
+
+
+@app.post("/webhooks/reply")
+def reply_webhook(body: ReplyHook):
+    lead = pipeline.get_lead(body.lead_id)
+    arm = pipeline.lead_arm(lead)
+    if lead.stage in ("matched", "contacted"):
+        pipeline.move(lead.id, "replied", "ai", agent="planner", why="reply webhook")
+    elif arm:
+        bandit.update(arm, 1, lead_id=lead.id)
+    return {"ok": True, "lead_id": lead.id, "arm": arm, "bandit": bandit.summary()}
+
+
+@app.post("/verify")
+def post_verify(body: VerifyBody):
+    allowed = [state.intake.product_url.split("//")[-1].split("/")[0]] if state.intake else ["tenki.cloud"]
+    return verifier.verify(body.text, body.company, body.signal, allowed_domains=allowed)

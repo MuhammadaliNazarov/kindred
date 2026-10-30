@@ -104,8 +104,16 @@ export type Touch = {
   body: string;
   signal_id: string;
   variant: "A" | "B";
+  arm?: string; // bandit arm id, e.g. "warmpath_hook__doc"
   status: "draft" | "approved" | "edited" | "rejected" | "sent";
-  review: { verdict: "pass" | "fix" | "fail"; notes: string; agent: "reviewer" };
+  review: {
+    verdict: "pass" | "fix" | "fail";
+    notes: string;
+    agent: "reviewer";
+    score?: number; // verifier score (same function = GRPO reward)
+    max_score?: number;
+    checks?: VerifierCheck[];
+  };
   security: { verdict: "pass" | "fail"; notes: string; agent: "security" };
 };
 
@@ -133,4 +141,25 @@ export type Credits = { balance: number; granted: number; used: { lead_enriched:
 export type GraphData = {
   nodes: { id: string; label: string; type: "Company" | "Person" | "Product" | "Competitor" | "Signal" | "Me" }[];
   links: { source: string; target: string; rel: string }[];
+};
+
+// ---------- Learning loop (bandit + verifier) ----------
+export type VerifierCheck = { name: string; pass: boolean; detail?: string };
+export type VerifyResult = { score: number; max?: number; checks: VerifierCheck[] };
+export type BanditArm = {
+  id: string;
+  hook: string;
+  cta: string;
+  hook_text?: string;
+  cta_text?: string;
+  sent: number;
+  replies: number;
+  mean: number;
+  share: number;
+};
+export type BanditState = {
+  arms: BanditArm[];
+  history: { step: number; shares: Record<string, number> }[];
+  simulated: boolean;
+  total_sent?: number;
 };

@@ -8,6 +8,7 @@ import { uid } from "@/components/outreach/bits";
 import { Kanban } from "./Kanban";
 import { Funnel, IndustryTable, TierTable, VariantTable, type AnalyticsData } from "./Analytics";
 import { AuditLog } from "./AuditLog";
+import { LearningLoop } from "./LearningLoop";
 
 const EMPTY: AnalyticsData = { byStage: [], byIndustry: [], byTier: [], variants: [] };
 const STAGES: Stage[] = ["matched", "contacted", "replied", "meeting", "closed_won", "closed_lost"];
@@ -88,6 +89,10 @@ export function PipelineBoard() {
       </div>
 
       <Kanban leads={leads} people={personById} companies={companyById} onMove={onMove} />
+
+      <div className="mt-8">
+        <LearningLoop />
+      </div>
 
       <h2 className="mb-2 mt-8 font-serif text-xl text-neutral-900">Analytics</h2>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
