@@ -191,6 +191,8 @@ export default function IntakePage() {
   const formRef = useRef<Intake>(EMPTY);
   const asked = useRef<Set<AskKey>>(new Set(["basics"]));
   const analyzedUrl = useRef<string | null>(null);
+  const [quickUrl, setQuickUrl] = useState("");
+  const [quickAbout, setQuickAbout] = useState("");
 
   useEffect(() => {
     formRef.current = form;
@@ -343,7 +345,7 @@ export default function IntakePage() {
           <h1 className="k-hero">
             Tell us what you <span className="k-accent">sell</span>
           </h1>
-          <p className="k-sub">Answer Kindred AI in plain words. It fills in the profile below, and you can edit anything.</p>
+          <p className="k-sub">Give Kindred AI your website. It reads the site, LinkedIn and socials, fills in your profile, and you can edit anything.</p>
         </div>
         {/* One primary at a time: the demo until the basics exist, then Generate ICP. */}
         <div className="flex shrink-0 items-center gap-3">
@@ -370,9 +372,39 @@ export default function IntakePage() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
-      {/* Chat */}
-      <section className="glass flex min-h-0 flex-col overflow-hidden rounded-[16px]">
+      {/* One input: website + who you serve. Kindred AI reads the site and fills the profile. */}
+      <form
+        className="glass mb-5 flex flex-col gap-3 rounded-[16px] p-4 lg:flex-row lg:items-end"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void analyze(quickUrl, undefined, quickAbout || undefined);
+        }}
+      >
+        <label className="flex flex-1 flex-col gap-1 text-[12px] text-neutral-600">
+          Your website
+          <input value={quickUrl} onChange={(e) => setQuickUrl(e.target.value)} placeholder="expedite.now"
+            className="h-11 rounded-[12px] bg-white px-3.5 text-[14px] text-neutral-900 shadow-[inset_0_0_0_1px_#8a93a8] outline-none focus:shadow-[inset_0_0_0_2px_#2f5bff]" />
+        </label>
+        <label className="flex flex-[2] flex-col gap-1 text-[12px] text-neutral-600">
+          Who you sell to, in one sentence (optional)
+          <input value={quickAbout} onChange={(e) => setQuickAbout(e.target.value)} placeholder="Founders building companies across borders"
+            className="h-11 rounded-[12px] bg-white px-3.5 text-[14px] text-neutral-900 shadow-[inset_0_0_0_1px_#8a93a8] outline-none focus:shadow-[inset_0_0_0_2px_#2f5bff]" />
+        </label>
+        <button type="submit" disabled={analyzing || !quickUrl.trim()}
+          className="h-11 shrink-0 rounded-full bg-accent px-5 text-[14px] font-medium text-white shadow-[0_6px_20px_-6px_rgba(47,91,255,0.6)] disabled:opacity-50">
+          {analyzing ? "Kindred AI is reading…" : "Analyze with Kindred AI"}
+        </button>
+      </form>
+      {msgs.length > 2 && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-[12px] bg-[#eef2ff] px-4 py-3 text-[13px] text-neutral-800">
+          <svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true" className="mt-0.5 shrink-0"><circle cx="15" cy="20" r="10" fill="none" stroke="#2f5bff" strokeWidth="3.2"/><circle cx="25" cy="20" r="10" fill="none" stroke="#9fd3ff" strokeWidth="3.2"/></svg>
+          <span><b className="font-medium">Kindred AI:</b> {[...msgs].reverse().find((m) => m.role === "assistant")?.text}</span>
+        </div>
+      )}
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5">
+      {/* Chat (kept for keyboard answers; hidden in the single-input layout) */}
+      <section className="glass hidden min-h-0 flex-col overflow-hidden rounded-[16px]">
         <div className="glass-band flex h-12 shrink-0 items-center px-5">
           <div className="flex items-center gap-2.5">
             <svg width="22" height="22" viewBox="0 0 40 40" aria-hidden="true"><circle cx="15" cy="20" r="10" fill="none" stroke="#2f5bff" strokeWidth="3.2"/><circle cx="25" cy="20" r="10" fill="none" stroke="#9fd3ff" strokeWidth="3.2"/></svg>
