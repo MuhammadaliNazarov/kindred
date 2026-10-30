@@ -22,10 +22,10 @@ same reward we train the model on.
 | **Discovery** | Real companies found on the live web (job posts, funding news), scored 0–100 with tier A/B/C. The source chip opens the page; claims that couldn't be proven are dropped. A graph shows warm intro paths | Real companies; warm paths are **sample** (they need your real network) |
 | **Outreach** | 3-touch email/LinkedIn drafts per lead. Reviewer and Security verdicts on each one. **Approve / Edit / Reject**; nothing sends without approval | Drafts are templates without live Claude in the cloud; sends go to a test inbox only |
 | **Pipeline** | Kanban (Matched → Contacted → Replied → Meeting → Closed), with AI-vs-human attribution on every move. Analytics, an A/B test, an audit log, and the **learning loop** (bandit) | Real |
-| **Model · RL** | Post-training: preference data from human edits, the RL environment you can try, the training curve, and the base-vs-trained eval | Real training run on Tenki |
+| **Model · RL** | Post-training: preference data from human edits, the RL environment you can try, the training curve, and the base-vs-trained eval | Real training run (CPU) |
 
 **Sponsors used:**
-- **Tenki:** hosts everything, and the training ran on a Tenki CPU sandbox.
+- **Tenki:** hosts the app, the API and the RL environment.
 - **Band:** 4 agents (Planner, Builder, Reviewer, Security) work in a shared room and hand off with @mentions; Security asks a human to approve.
 - **Flexprice:** meters 3 events (leads enriched, outreach sent, graph queries) against a prepaid wallet, and blocks enrichment when credits run out.
 - **Tavily:** live, cited web search.
@@ -39,14 +39,29 @@ same reward we train the model on.
 | **Reward modelling (RLVR)** | A rule-based **verifier** scores every draft: it cites the signal, names the company, has no outcome guarantees, links only to allowed domains, ends with a question, and has the right length. It gates the human review queue. |
 | **RL environment** | `OutreachEnv`: `reset()` gives a real lead and its cited signal, and `step(draft)` returns the verifier's reward. Served over HTTP (`/env/reset`, `/env/step`) from Tenki, so anyone can train on it. |
 | **Preference data (DPO / RLHF)** | Every **Edit** in the queue becomes a pair (rejected = AI draft, chosen = human edit). Every **Reject** pairs with a better draft. Download it as JSONL from the Model tab. |
-| **Fine-tuning (GRPO + LoRA)** | We trained a small open model (SmolLM2-135M) with GRPO on a **Tenki CPU sandbox**: 4 drafts per lead, scored by the verifier, and the model pushed toward drafts above the group average. |
+| **Fine-tuning (GRPO + LoRA)** | We trained a small open model (SmolLM2-135M) with GRPO on CPU: 4 drafts per lead, scored by the verifier, and the model pushed toward drafts above the group average. |
 | **Evals** | Base vs trained on held-out leads: average reward, citation rate, no banned claims, length, ends with a question. See the Model tab. |
 | **Learned inference-time policy** | A Thompson-sampling **bandit** moves outreach traffic to the message style that gets replies (Pipeline → Learning loop). |
 
 **The insight to say out loud:** "The checker that protects every outgoing message *is* the reward we train on, and every human
 edit becomes preference data. So the product gets better just by being used."
 
-**Eval result:** _filled in once the eval finishes (see the Model tab)._
+**Eval result (real run, 30 Oct):** SmolLM2-135M, GRPO + LoRA, 25 steps on CPU, evaluated on 20 held-out leads.
+
+| Metric | Base | Trained |
+|---|---|---|
+| Average reward (0–1) | 0.663 | **0.681** |
+| Length within limits | 55% | **60%** |
+| Cites the signal | 100% | 100% |
+| No banned claims | 95% | 95% |
+| Ends with a question | 0% | 0% |
+
+**Say it honestly:** "A small, real improvement after 25 steps on a CPU. The point is the loop: the same reward, the same environment
+and the preference data scale to a bigger model on a GPU." The weak spot is that no draft ends with a question, which is the
+obvious next reward to push. Don't claim a big jump.
+
+**Where it ran:** training started on a Tenki CPU sandbox, but that sandbox ran out of memory during the eval and was shut down. The final
+run was on the laptop CPU. Tenki hosts the app, the API and the RL environment.
 
 ## 4. Before you record (5 min)
 
@@ -78,8 +93,8 @@ training data."**
 **1:30–2:15 · Model · RL (the money shot)** [Model tab]
 **"Here's the post-training. Each human edit becomes a preference pair. The checker that guards every message is our reward function.
 We wrapped it as an RL environment."** [Try it: Reset, paste a bad draft, Step, and show the low reward and ✗ checks.] **"Then we trained a
-small open model with GRPO on a Tenki sandbox."** [Point at the reward curve, then the base-vs-trained bars.] **"On held-out leads, the
-trained model scores higher than the base."**
+small open model with GRPO, on a CPU, in 25 steps."** [Point at the reward curve, then the base-vs-trained bars.] **"On held-out leads,
+the trained model already scores higher than the base. Same loop, bigger model, bigger gain."**
 
 **2:15–2:30 · Close** [Pipeline → Learning loop → Simulate]
 **"And live, a bandit shifts traffic to the messages that get replies. Kindred: every claim cited, every intro warm, and better with every
@@ -87,7 +102,7 @@ approval. Built on Tenki, Band, Flexprice and Tavily."**
 
 ## 6. Judge questions
 
-- **Is the training real?** Yes. GRPO with LoRA on SmolLM2-135M, about 25 steps on a 4-CPU Tenki sandbox. The reward curve and the eval are from
+- **Is the training real?** Yes. GRPO with LoRA on SmolLM2-135M, 25 steps on CPU (the Tenki attempt ran out of memory, so the final run was on the laptop). The reward curve and the eval are from
   that run. It's small, because it's a one-day CPU run; the same scripts scale to Qwen 0.5–1.5B on a GPU (`api/rl/README.md`).
 - **Why a rule-based reward, not a learned reward model?** It's verifiable (RLVR): it can't be fooled by tone, and the same function is the
   production quality gate. A length cap and banned-claim penalties limit reward hacking. Next step: a learned reward model on the human

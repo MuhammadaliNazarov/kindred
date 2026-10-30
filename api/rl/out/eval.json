@@ -1,0 +1,90 @@
+{
+ "status": "done",
+ "model_base": "HuggingFaceTB/SmolLM2-135M-Instruct",
+ "model_trained": "HuggingFaceTB/SmolLM2-135M-Instruct + LoRA (out/lora)",
+ "n": 20,
+ "max_raw_score": 4.5,
+ "reward": "app.verifier.score normalised to [0,1] (same as HITL gate)",
+ "split": "held-out companies (fixed sha1 group split), never in training",
+ "metrics": [
+  {
+   "name": "avg reward",
+   "base": 0.6625,
+   "trained": 0.6813
+  },
+  {
+   "name": "cites signal %",
+   "base": 100.0,
+   "trained": 100.0
+  },
+  {
+   "name": "no banned claims %",
+   "base": 95.0,
+   "trained": 95.0
+  },
+  {
+   "name": "length ok %",
+   "base": 55.0,
+   "trained": 60.0
+  },
+  {
+   "name": "ends with question %",
+   "base": 0.0,
+   "trained": 0.0
+  }
+ ],
+ "examples": [
+  {
+   "company": "Agentsmith Labs",
+   "base_text": "<<Signing off for Agentsmith Labs>>\n\nDear Tenki,\n\nI hope this message finds you well. I am writing to you today to inform you that I have been invited to join Agentsmith Labs as a hiring platform engineer. This is a fantastic opportunity, as I believe my skills and experience will be invaluable in helping you develop and maintain a robust, fast-paced, and secure AI agent runtime.\n\nAs a Cloud Sandbox Developer, I have extensive experience with building and deploying AI agents, and I am confident that my expertise will be highly sought after by your team",
+   "trained_text": "<<Signing off for Agentsmith Labs>>\n\nDear Tenki,\n\nI hope this message finds you well. I am writing to you today to request your assistance in securing a job for a team of agentsmiths at Agentsmith Labs.\n\nAs you know, our team is responsible for developing and maintaining the runtime for our AI agents, which is a critical component of our mission. We have been working diligently to ensure that our agents are well-equipped to handle the demands of our clients, and we believe that your expertise in the development of runtime solutions is a valuable asset to",
+   "base_score": 1.5,
+   "trained_score": 2.5
+  },
+  {
+   "company": "Cinder Labs",
+   "base_text": "\"Dear [VP],\n\nI am writing to express my interest in the [Tenki.Cloud] project, which is a promising initiative to build secure, fast-booting cloud sandboxes for AI agents. I believe this project has the potential to revolutionize the field of AI development and provide a robust platform for AI research.\n\nI am excited about the opportunity to contribute to the development of these sandboxes and to contribute to the success of the project. I am available to discuss the project further and answer any questions you may have.\n\nPlease let me know if you would",
+   "trained_text": "\"Dear [VP],\n\nI am writing to express my interest in the [Tenki.Cloud] project, which is a promising initiative to build secure, fast-booting cloud sandboxes for AI agents. I believe this project has the potential to revolutionize the field of AI development and provide a scalable solution for AI development.\n\nI am excited about the opportunity to contribute to the development of this project and to contribute to the success of the [Tenki.Cloud] project. I am eager to learn more about the project and to discuss the details of the [Tenki.",
+   "base_score": 1.5,
+   "trained_score": 2.5
+  },
+  {
+   "company": "Pylon Agents",
+   "base_text": "Dear Hiring Manager,\n\nI am writing to express my interest in the opportunity to join the team at Pylon Agents. As a seasoned AI agent developer, I am eager to contribute to the development of secure, fast-booting cloud sandboxes for AI agents. I am confident that our team will be instrumental in ensuring the safety and efficiency of our agents' work.\n\nI am particularly drawn to the Tenki Cloud platform, which offers a range of features and capabilities that I believe will be invaluable to our team. I am excited about the prospect of working with a team that shares",
+   "trained_text": "Dear Hiring Manager,\n\nI am writing to express my interest in the opportunity to join the team at Pylon Agents. As a seasoned AI agent developer, I am eager to contribute to the development of secure, fast-booting cloud sandboxes for AI agents. I am confident that our team will be instrumental in ensuring the safety and efficiency of our agents' work.\n\nI am particularly drawn to the Tenki (https://tenki.cloud) API, which provides a secure and fast-booted environment for our agents. I am excited about the prospect of working with this",
+   "base_score": 1.5,
+   "trained_score": 2.5
+  }
+ ],
+ "training": {
+  "steps": 25,
+  "reward_curve": [
+   0.6562,
+   0.6562,
+   0.6875,
+   0.4375,
+   0.5625,
+   0.6875,
+   0.5625,
+   0.5938,
+   0.5625,
+   0.6875,
+   0.4375,
+   0.625,
+   0.625,
+   0.7812,
+   0.5938,
+   0.6562,
+   0.4062,
+   0.6875,
+   0.6875,
+   0.5625,
+   0.6875,
+   0.5938,
+   0.7188,
+   0.5938,
+   0.5625
+  ]
+ },
+ "elapsed_s": 48.6
+}
