@@ -1,0 +1,335 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import * as Dialog from "@radix-ui/react-dialog";
+import clsx from "clsx";
+import { ArrowRight, Ban, Check, Pencil, X } from "lucide-react";
+import type { ExpansionSegment, ICP, Source } from "@/lib/types";
+import { getExpansions, getICP, setExpansionStatus } from "@/lib/api";
+import { SourceChips } from "@/components/shell/SourceChip";
+
+function ConfidenceBar({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(1, value));
+  const tone = v >= 0.75 ? "bg-emerald-600" : v >= 0.55 ? "bg-amber-500" : "bg-rose-600";
+  return (
+    <span className="flex items-center gap-2" title={`Confidence ${v.toFixed(2)}`}>
+      <span className="h-1 w-20 overflow-hidden rounded-full bg-neutral-200">
+        <span className={clsx("block h-full", tone)} style={{ width: `${v * 100}%` }} />
+      </span>
+      <span className="w-8 text-right font-mono text-[11px] tabular-nums text-neutral-600">{v.toFixed(2)}</span>
+    </span>
+  );
+}
+
+function Row({ title, sub, confidence, sources }: { title: React.ReactNode; sub?: React.ReactNode; confidence: number; sources?: Source[] }) {
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 border-b border-neutral-100 py-2.5 last:border-0">
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium text-neutral-900">{title}</div>
+        {sub && <div className="text-[12px] text-neutral-500">{sub}</div>}
+      </div>
+      <ConfidenceBar value={confidence} />
+      <div className="col-span-2">
+        <SourceChips sources={sources} />
+      </div>
+    </li>
+  );
+}
+
+function Card({ title, count, children, className }: { title: string; count?: number; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={clsx("rounded-lg border border-neutral-200 bg-white", className)}>
+      <header className="flex items-baseline justify-between border-b border-neutral-200 px-4 py-2.5">
+        <h3 className="font-serif text-[16px] tracking-tight">{title}</h3>
+        {count !== undefined && <span className="text-[11px] tabular-nums text-neutral-400">{count}</span>}
+      </header>
+      <div className="px-4">{children}</div>
+    </section>
+  );
+}
+
+const TRIGGER_LABEL: Record<string, string> = {
+  funding: "Funding",
+  exec_hire: "Exec hire",
+  job_post: "Job post",
+  tech_change: "Tech change",
+  launch: "Launch",
+};
+
+export default function ICPPage() {
+  const [icp, setIcp] = useState<ICP | null>(null);
+  const [segs, setSegs] = useState<ExpansionSegment[]>([]);
+  const [editing, setEditing] = useState<ExpansionSegment | null>(null);
+
+  useEffect(() => {
+    getICP().then(setIcp);
+    getExpansions().then(setSegs);
+  }, []);
+
+  async function update(id: string, status: ExpansionSegment["status"], patch?: { name?: string; rationale?: string }) {
+    // optimistic
+    setSegs((s) => s.map((x) => (x.id === id ? { ...x, status, ...(patch ?? {}) } : x)));
+    await setExpansionStatus(id, status, patch);
+    setSegs(await getExpansions());
+  }
+
+  if (!icp) return <div className="p-8 text-[13px] text-neutral-500">Loading ICP…</div>;
+
+  const allConf = [
+    ...icp.industries.map((x) => x.confidence),
+    icp.company_size.confidence,
+    ...icp.personas.map((x) => x.confidence),
+    ...icp.triggers.map((x) => x.confidence),
+  ];
+  const avg = allConf.reduce((a, b) => a + b, 0) / allConf.length;
+  const size = icp.company_size.value;
+
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-6">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[30px] leading-tight tracking-tight">Ideal customer profile</h1>
+          <p className="text-[12px] text-neutral-500">
+            Every field carries a confidence score and the sources it came from. Hover a source to see the quote.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wide text-neutral-500">Mean confidence</div>
+            <div className="font-serif text-[22px] tabular-nums">{avg.toFixed(2)}</div>
+          </div>
+          <Link
+            href="/discovery"
+            className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-2 text-[13px] font-medium text-white hover:bg-neutral-800"
+          >
+            Find accounts <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Card title="Industries" count={icp.industries.length}>
+          <ul>
+            {icp.industries.map((x) => (
+              <Row
+                key={x.value.naics + x.value.name}
+                title={x.value.name}
+                sub={<span className="font-mono tabular-nums">NAICS {x.value.naics}</span>}
+                confidence={x.confidence}
+                sources={x.sources}
+              />
+            ))}
+          </ul>
+        </Card>
+
+        <Card title="Company size">
+          <ul>
+            <Row
+              title={
+                <span className="tabular-nums">
+                  {size.min_headcount}–{size.max_headcount} employees
+                </span>
+              }
+              sub={size.revenue_band}
+              confidence={icp.company_size.confidence}
+              sources={icp.company_size.sources}
+            />
+          </ul>
+          <div className="border-t border-neutral-100 py-2.5 text-[12px] text-neutral-500">
+            Regions: <span className="text-neutral-800">{icp.regions.join(" · ")}</span>
+          </div>
+        </Card>
+
+        <Card title="Personas" count={icp.personas.length}>
+          <ul>
+            {icp.personas.map((x) => (
+              <Row
+                key={x.value.title}
+                title={x.value.title}
+                sub={`${x.value.seniority} · ${x.value.function}`}
+                confidence={x.confidence}
+                sources={x.sources}
+              />
+            ))}
+          </ul>
+        </Card>
+
+        <Card title="Triggers" count={icp.triggers.length} className="md:col-span-2">
+          <ul>
+            {icp.triggers.map((x) => (
+              <Row
+                key={x.value.type + x.value.description}
+                title={
+                  <span className="flex items-center gap-2">
+                    <span className="rounded border border-neutral-200 bg-neutral-50 px-1.5 text-[10px] uppercase tracking-wide text-neutral-600">
+                      {TRIGGER_LABEL[x.value.type] ?? x.value.type}
+                    </span>
+                    {x.value.description}
+                  </span>
+                }
+                confidence={x.confidence}
+                sources={x.sources}
+              />
+            ))}
+          </ul>
+        </Card>
+
+        <Card title="Negative signals" count={icp.negative_signals.length}>
+          <ul className="py-1.5">
+            {icp.negative_signals.map((n) => (
+              <li key={n} className="flex items-start gap-2 py-1.5 text-[13px] text-neutral-800">
+                <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" />
+                {n}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      <div className="mb-3 mt-10 flex items-end justify-between">
+        <div>
+          <h2 className="font-serif text-[22px] tracking-tight">Expansion segments</h2>
+          <p className="text-[12px] text-neutral-500">Adjacent markets the agents think could buy. Accept, adjust or dismiss each one.</p>
+        </div>
+        <span className="text-[11px] tabular-nums text-neutral-500">
+          {segs.filter((s) => s.status === "accepted" || s.status === "adjusted").length} accepted ·{" "}
+          {segs.filter((s) => s.status === "dismissed").length} dismissed
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {segs.map((s) => (
+          <article
+            key={s.id}
+            className={clsx(
+              "flex flex-col rounded-lg border bg-white p-4",
+              s.status === "accepted" || s.status === "adjusted" ? "border-emerald-300" : "border-neutral-200",
+              s.status === "dismissed" && "opacity-50",
+            )}
+          >
+            <div className="mb-1 flex items-start justify-between gap-3">
+              <h3 className="font-serif text-[17px] leading-snug">{s.name}</h3>
+              <StatusTag status={s.status} />
+            </div>
+            <div className="mb-2">
+              <ConfidenceBar value={s.confidence} />
+            </div>
+            <p className="mb-3 text-[13px] leading-relaxed text-neutral-700">{s.rationale}</p>
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-neutral-500">Evidence</div>
+            <ul className="mb-4 space-y-1.5">
+              {s.sources.map((src, i) => (
+                <li key={src.url + i} className="text-[12px] leading-snug">
+                  <span className="font-serif italic text-neutral-700">“{src.quote}”</span>{" "}
+                  <SourceChips sources={[src]} />
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto flex gap-2">
+              <button
+                onClick={() => update(s.id, "accepted")}
+                className={clsx(
+                  "flex flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[12px] font-medium",
+                  s.status === "accepted" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-600 text-emerald-700 hover:bg-emerald-50",
+                )}
+              >
+                <Check className="h-3.5 w-3.5" /> Accept
+              </button>
+              <button
+                onClick={() => setEditing(s)}
+                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:bg-neutral-50"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Adjust
+              </button>
+              <button
+                onClick={() => update(s.id, s.status === "dismissed" ? "suggested" : "dismissed")}
+                className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-300 px-2 py-1.5 text-[12px] text-neutral-700 hover:border-rose-300 hover:text-rose-700"
+              >
+                <X className="h-3.5 w-3.5" /> {s.status === "dismissed" ? "Restore" : "Dismiss"}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <AdjustDialog
+        segment={editing}
+        onClose={() => setEditing(null)}
+        onSave={(name, rationale) => {
+          if (editing) update(editing.id, "adjusted", { name, rationale });
+          setEditing(null);
+        }}
+      />
+    </div>
+  );
+}
+
+function StatusTag({ status }: { status: ExpansionSegment["status"] }) {
+  const tone: Record<ExpansionSegment["status"], string> = {
+    suggested: "border-neutral-200 text-neutral-500",
+    accepted: "border-emerald-300 bg-emerald-50 text-emerald-700",
+    adjusted: "border-amber-300 bg-amber-50 text-amber-700",
+    dismissed: "border-neutral-200 text-neutral-400",
+  };
+  return <span className={clsx("shrink-0 rounded border px-1.5 text-[10px] uppercase tracking-wide", tone[status])}>{status}</span>;
+}
+
+function AdjustDialog({
+  segment,
+  onClose,
+  onSave,
+}: {
+  segment: ExpansionSegment | null;
+  onClose: () => void;
+  onSave: (name: string, rationale: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [rationale, setRationale] = useState("");
+  useEffect(() => {
+    if (segment) {
+      setName(segment.name);
+      setRationale(segment.rationale);
+    }
+  }, [segment]);
+
+  return (
+    <Dialog.Root open={!!segment} onOpenChange={(o) => !o && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-neutral-900/20" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-white p-5 shadow-lg">
+          <Dialog.Title className="font-serif text-[20px] tracking-tight">Adjust segment</Dialog.Title>
+          <Dialog.Description className="mb-4 text-[12px] text-neutral-500">
+            Your edit is saved as “adjusted” and logged as a rep action.
+          </Dialog.Description>
+          <label className="mb-3 block">
+            <span className="mb-1 block text-[11px] uppercase tracking-wide text-neutral-500">Name</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-md border border-neutral-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-neutral-400"
+            />
+          </label>
+          <label className="mb-5 block">
+            <span className="mb-1 block text-[11px] uppercase tracking-wide text-neutral-500">Rationale</span>
+            <textarea
+              rows={4}
+              value={rationale}
+              onChange={(e) => setRationale(e.target.value)}
+              className="w-full resize-none rounded-md border border-neutral-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-neutral-400"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Dialog.Close className="rounded-md border border-neutral-300 px-3 py-1.5 text-[13px] hover:bg-neutral-50">Cancel</Dialog.Close>
+            <button
+              disabled={!name.trim()}
+              onClick={() => onSave(name.trim(), rationale.trim())}
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-[13px] font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
+            >
+              Save adjustment
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

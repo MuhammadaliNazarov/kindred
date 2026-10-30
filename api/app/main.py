@@ -1,0 +1,187 @@
+"""Warmpath API. Run: uv run uvicorn app.main:app --reload --port 8000"""
+from __future__ import annotations
+
+import os
+from contextlib import asynccontextmanager
+from typing import Optional
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from sse_starlette.sse import EventSourceResponse  # noqa: E402
+
+from . import billing, discovery, enrich, graph, icp, llm, outreach, pipeline, seed, state, thinking  # noqa: E402
+from .models import (AuditEvent, Company, Credits, ExpansionSegment, ExpansionUpdate, GraphData, ICP, Intake, Lead,  # noqa: E402
+                     MoveBody, Person, ReviewBody, ThinkingStep, Touch, WarmPath)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    seed.load()
+    yield
+
+
+app = FastAPI(title="Warmpath API", version="0.1.0", lifespan=lifespan)
+origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "http://localhost:3000").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
+                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+
+@app.get("/health")
+def health():
+    return {
+        "ok": True,
+        "modes": {
+            "llm": "live" if llm.live() else "fallback",
+            "search": "tavily" if os.getenv("TAVILY_API_KEY") else "serper" if os.getenv("SERPER_API_KEY") else "seed",
+            "enrichment": "hunter" if os.getenv("HUNTER_API_KEY") else "apollo" if os.getenv("APOLLO_API_KEY") else "seed",
+            "email": "sendgrid" if all(os.getenv(k) for k in ("SENDGRID_API_KEY", "SENDGRID_FROM", "DEMO_INBOX")) else "simulated",
+            "billing": "flexprice" if billing.live() else "local_ledger",
+            "graph": "kuzu",
+        },
+        "counts": {"companies": len(state.companies), "people": len(state.people), "leads": len(state.leads), "touches": len(state.touches)},
+    }
+
+
+# ---------- intake / ICP ----------
+@app.post("/intake")
+def post_intake(body: Intake):
+    if body.past_employers:
+        seed.set_me_history(body.past_employers)
+    graph.upsert_product(body.product_name, body.product_url)
+    i, exps = icp.run(body)
+    discovery.rescore_all()
+    return {"icp": i, "expansions": exps}
+
+
+@app.get("/icp", response_model=Optional[ICP])
+def get_icp():
+    return state.icp
+
+
+@app.get("/expansions", response_model=list[ExpansionSegment])
+def get_expansions():
+    return list(state.expansions.values())
+
+
+@app.post("/expansions/{seg_id}", response_model=ExpansionSegment)
+def update_expansion(seg_id: str, body: ExpansionUpdate):
+    seg = state.expansions.get(seg_id)
+    if not seg:
+        raise HTTPException(404, "segment not found")
+    seg.status = body.status
+    if body.name:
+        seg.name = body.name
+    if body.rationale:
+        seg.rationale = body.rationale
+    state.log("rep", f"segment_{body.status}", seg.name)
+    thinking.emit("planner", "reason", f"Expansion '{seg.name}' {body.status} by rep")
+    return seg
+
+
+# ---------- discovery / graph ----------
+@app.post("/discover")
+def post_discover():
+    return discovery.run()
+
+
+@app.get("/companies", response_model=list[Company])
+def get_companies():
+    return sorted(state.companies.values(), key=lambda c: -c.score)
+
+
+@app.get("/dropped")
+def get_dropped():
+    """Claims the validator dropped (quote not found at URL), verified:false — for a 'show dropped' view."""
+    return state.dropped_claims
+
+
+@app.get("/people", response_model=list[Person])
+def get_people():
+    return list(state.people.values())
+
+
+@app.get("/graph", response_model=GraphData)
+def get_graph(lead: Optional[str] = None):
+    if lead:
+        l = pipeline.get_lead(lead)
+        return graph.subgraph(l.person_id, l.company_id)
+    return graph.subgraph(None, None)
+
+
+@app.get("/warm-path/{lead_id}", response_model=WarmPath)
+def get_warm_path(lead_id: str):
+    l = pipeline.get_lead(lead_id)
+    hops, cy = graph.warm_path(graph.ME, l.person_id)
+    return WarmPath(lead_id=lead_id, hops=hops, cypher=cy)
+
+
+# ---------- leads ----------
+@app.get("/leads", response_model=list[Lead])
+def get_leads():
+    return list(state.leads.values())
+
+
+@app.post("/leads/{lead_id}/move", response_model=Lead)
+def move_lead(lead_id: str, body: MoveBody):
+    return pipeline.move(lead_id, body.stage, body.actor, agent=None if body.actor == "rep" else "planner")
+
+
+@app.post("/leads/{lead_id}/enrich", response_model=Person)
+def enrich_lead(lead_id: str):
+    return enrich.enrich_lead(lead_id)
+
+
+@app.post("/leads/{lead_id}/draft", response_model=list[Touch])
+def draft_lead(lead_id: str):
+    return outreach.draft(lead_id)
+
+
+# ---------- outreach ----------
+@app.get("/touches", response_model=list[Touch])
+def get_touches(lead_id: Optional[str] = None):
+    return [t for t in state.touches.values() if not lead_id or t.lead_id == lead_id]
+
+
+@app.post("/touches/{touch_id}/review", response_model=Touch)
+def review_touch(touch_id: str, body: ReviewBody):
+    return outreach.review_touch(touch_id, body.action, body.actor, body.body, body.subject)
+
+
+@app.post("/touches/{touch_id}/send", response_model=Touch)
+def send_touch(touch_id: str):
+    return outreach.send_touch(touch_id)
+
+
+# ---------- audit / credits / analytics / thinking ----------
+@app.get("/audit", response_model=list[AuditEvent])
+def get_audit():
+    return list(reversed(state.audit))
+
+
+@app.get("/credits", response_model=Credits)
+def get_credits():
+    return billing.credits()
+
+
+@app.post("/credits/reset", response_model=Credits)
+def reset_credits():
+    return billing.reset()
+
+
+@app.get("/analytics")
+def get_analytics():
+    return pipeline.analytics()
+
+
+@app.get("/thinking", response_model=list[ThinkingStep])
+def get_thinking(limit: int = 200):
+    return thinking.history(limit)
+
+
+@app.get("/thinking/stream")
+async def thinking_stream(request: Request):
+    return EventSourceResponse(thinking.stream(request), ping=15)

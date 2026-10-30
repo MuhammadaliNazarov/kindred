@@ -1,0 +1,68 @@
+"use client";
+
+import { useState } from "react";
+import clsx from "clsx";
+import type { Actor, AuditEvent } from "@/lib/types";
+import { Badge, fmtTime } from "@/components/outreach/bits";
+
+export function AuditLog({ events, leadLabel }: { events: AuditEvent[]; leadLabel: (id: string) => string }) {
+  const [filter, setFilter] = useState<"all" | Actor>("all");
+  const rows = events
+    .filter((e) => filter === "all" || e.actor === filter)
+    .sort((a, b) => (a.at < b.at ? 1 : -1));
+  const counts = { all: events.length, ai: events.filter((e) => e.actor === "ai").length, rep: events.filter((e) => e.actor === "rep").length };
+
+  return (
+    <section className="border border-neutral-200 bg-white">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2">
+        <h3 className="font-serif text-[15px] text-neutral-900">Audit log</h3>
+        <div className="flex border border-neutral-200 text-[11px]">
+          {(["all", "ai", "rep"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={clsx("px-2 py-0.5 tabular-nums", filter === f ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-50")}
+            >
+              {f === "all" ? "All" : f === "ai" ? "AI" : "Rep"} {counts[f]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="max-h-[360px] overflow-auto">
+        <table className="w-full text-[12px] tabular-nums">
+          <thead className="sticky top-0 bg-white">
+            <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wider text-neutral-500">
+              <th className="px-3 py-1 font-semibold">Time</th>
+              <th className="px-3 py-1 font-semibold">Actor</th>
+              <th className="px-3 py-1 font-semibold">Action</th>
+              <th className="px-3 py-1 font-semibold">Lead</th>
+              <th className="px-3 py-1 font-semibold">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.id} className="border-b border-neutral-100 align-top">
+                <td className="whitespace-nowrap px-3 py-1 text-neutral-500">{fmtTime(e.at)}</td>
+                <td className="whitespace-nowrap px-3 py-1">
+                  <Badge tone={e.actor === "rep" ? "dark" : "neutral"}>{e.actor === "rep" ? "Rep" : "AI"}</Badge>
+                  {e.agent && <span className="ml-1 text-neutral-500">{e.agent}</span>}
+                </td>
+                <td className="whitespace-nowrap px-3 py-1 font-mono text-[11px] text-neutral-800">{e.action}</td>
+                <td className="whitespace-nowrap px-3 py-1 text-neutral-800">{e.lead_id ? leadLabel(e.lead_id) : "—"}</td>
+                <td className="px-3 py-1 text-neutral-600">{e.detail}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-3 py-2 text-neutral-400">
+                  No events.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}

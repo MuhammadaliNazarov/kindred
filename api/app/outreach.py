@@ -1,0 +1,227 @@
+"""3-touch sequences (email, email, linkedin) from one cited signal + warm path + persona rules; Reviewer + Security
+checks; HITL review; SendGrid send forced to DEMO_INBOX."""
+from __future__ import annotations
+
+import json
+import os
+import re
+from urllib.parse import urlparse
+
+import httpx
+from fastapi import HTTPException
+
+from . import billing, graph, llm, pipeline, state, thinking
+from .models import Review, Security, Touch
+
+PERSONA_RULES = {
+    "c-level": "Lead with business outcome and speed; max 90 words; no jargon.",
+    "director": "Lead with the team's roadmap pain; mention build-vs-buy; max 110 words.",
+    "ic": "Be technical and concrete (cold-start, isolation, API); max 120 words.",
+}
+
+COPY_SYSTEM = """You are the Builder/Copy agent. Write a 3-touch outbound sequence (step 1 email, step 2 email, step 3 LinkedIn note under 300 chars).
+Rules: open with the ONE cited signal (say what and when, in plain words); only state facts present in the signal or warm path;
+mention the warm path connector by first name if one exists; no links except the product URL given; no emails/phone numbers;
+no tracking links. Variant A = signal-led subject; Variant B = warm-path/question-led subject.
+Return {"touches":[{"step":1,"channel":"email","subject":str,"body":str},{"step":2,"channel":"email","subject":str,"body":str},{"step":3,"channel":"linkedin","body":str}]}"""
+
+
+def _first(name: str) -> str:
+    return name.split()[0] if name else "there"
+
+
+def _fallback(person, co, sig, hops, variant, product, product_url) -> dict:
+    # hops (edge direction kept): You→PastCo, Connector→PastCo, Connector→TargetCo, Buyer→TargetCo
+    connector = hops[0].to if hops else None
+    connector_person = hops[1].from_ if len(hops) >= 3 else None
+    warm = f"{connector_person} and I both worked at {connector}, so happy to have {_first(connector_person)} intro us if easier. " if connector_person and connector else ""
+    sig_line = f"Saw {co.name}'s {sig.type.replace('_', ' ')} on {sig.date}: {sig.summary}."
+    if variant == "A":
+        s1 = f"{co.name}: {sig.summary[:60]}"
+    else:
+        s1 = f"{'Via ' + _first(connector_person) + ' — ' if connector_person else ''}sandboxes at {co.name}?"
+    body1 = (f"Hi {_first(person.name)},\n\n{warm if variant == 'B' else ''}{sig_line}\n\n"
+             f"Teams in that spot usually end up building sandbox infra for agent code themselves. {product} gives you that as an API, "
+             f"so your engineers stay on the product.\n\n{warm if variant == 'A' else ''}Worth a short look? {product_url}\n\n— Ali")
+    body2 = (f"Hi {_first(person.name)}, following up on the {sig.type.replace('_', ' ')} from {sig.date}. "
+             f"If the sandbox work is already scoped, happy to share how other agent teams cut it from a quarter to a week with {product}. Reply 'yes' and I'll send a short plan.")
+    body3 = f"Hi {_first(person.name)} — saw {co.name}'s {sig.type.replace('_', ' ')} ({sig.date}). Building agent sandboxes? Would love to compare notes."
+    return {"touches": [
+        {"step": 1, "channel": "email", "subject": s1, "body": body1},
+        {"step": 2, "channel": "email", "subject": f"Re: {s1}", "body": body2},
+        {"step": 3, "channel": "linkedin", "body": body3[:300]},
+    ]}
+
+
+# ---------------- Reviewer ----------------
+STOP = set("the a an and or to of in on for at by with is are was were be this that it its your you we our i from as about".split())
+CLAIM_HINT = re.compile(r"\d|raised|hiring|hired|launch|announc|post|migrat|series|seed|funding|joined|outage|pricing", re.I)
+
+
+def _words(s: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9$%]+", s.lower()) if w not in STOP and len(w) > 2}
+
+
+def review(t: Touch, lead) -> Review:
+    sources = state.lead_sources(lead)
+    if not sources:
+        return Review(verdict="fail", notes="Lead has no sources; no claim can be supported.")
+    co = state.companies.get(lead.company_id)
+    ctx_txt = " ".join([s.quote + " " + s.title for s in sources] + [g.summary + " " + g.date + " " + g.type.replace("_", " ") for g in (co.signals if co else [])])
+    # warm-path facts are graph facts (cited by the graph itself)
+    ctx_txt += " " + " ".join(f"{h.from_} {h.rel} {h.to}" for h in state_warm.get(lead.id, []))
+    ctx = _words(ctx_txt) | _words((co.name if co else "") + " " + (state.intake.product_name if state.intake else ""))
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", t.body + " " + (t.subject or "")) if s.strip()]
+    unsupported = []
+    for s in sentences:
+        if not CLAIM_HINT.search(s):
+            continue
+        w = _words(s)
+        if w and len(w & ctx) / len(w) < 0.4:
+            unsupported.append(s[:90])
+    sig = next((g for g in (co.signals if co else []) if g.id == t.signal_id), None)
+    if sig and not sig.source.verified:
+        note = "Signal source is demo/unverified (verified:false). "
+    else:
+        note = ""
+    if not unsupported:
+        return Review(verdict="pass", notes=note + f"All factual claims map to the lead's {len(sources)} source(s).")
+    verdict = "fix" if len(unsupported) <= 2 else "fail"
+    return Review(verdict=verdict, notes=note + "Unsupported claims: " + " | ".join(unsupported))
+
+
+# ---------------- Security ----------------
+URL_RE = re.compile(r"https?://[^\s)>\]]+", re.I)
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+PHONE_RE = re.compile(r"(?<![\d-])(?:\+\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?![\d-])")
+TRACK_RE = re.compile(r"utm_|pixel|track|open\.gif|beacon|/o/|/wf/open|click\?|[?&](uid|cid|rid|eid)=|\.gif", re.I)
+
+
+def security(t: Touch, lead) -> Security:
+    co = state.companies.get(lead.company_id)
+    allowed = {d for d in [co.domain if co else "", urlparse(state.intake.product_url).netloc if state.intake else ""] if d}
+    allowed = {d.replace("www.", "") for d in allowed}
+    issues = []
+    for u in URL_RE.findall(t.body):
+        host = urlparse(u).netloc.lower().replace("www.", "")
+        if not any(host == d or host.endswith("." + d) for d in allowed):
+            issues.append(f"link to non-allowed domain {host}")
+        if TRACK_RE.search(u):
+            issues.append(f"tracking-style URL {u[:60]}")
+    if EMAIL_RE.search(t.body):
+        issues.append("email address in body (PII)")
+    if PHONE_RE.search(t.body):
+        issues.append("phone number in body (PII)")
+    if issues:
+        return Security(verdict="fail", notes="; ".join(issues))
+    return Security(verdict="pass", notes=f"Links only to {', '.join(sorted(allowed)) or 'none'}; no PII beyond name/title; no tracking URLs.")
+
+
+state_warm: dict[str, list] = {}
+
+
+def check(t: Touch, lead) -> Touch:
+    t.review = review(t, lead)
+    t.security = security(t, lead)
+    thinking.emit("reviewer", "validate", f"Reviewer on {t.id}: {t.review.verdict} — {t.review.notes[:120]}")
+    thinking.emit("security", "validate", f"Security on {t.id}: {t.security.verdict} — {t.security.notes[:120]}")
+    return t
+
+
+def draft(lead_id: str, use_llm: bool = True) -> list[Touch]:
+    lead = pipeline.get_lead(lead_id)
+    p, co = state.people[lead.person_id], state.companies[lead.company_id]
+    sig = state.best_signal(co)
+    if not sig:
+        raise HTTPException(422, "no cited signal for this lead — refusing to write outreach without a 'why now'")
+    thinking.emit("planner", "handoff", f"Planner → Builder: draft 3 touches for {p.name} @ {co.name} (variant {lead.variant})")
+    hops, _ = graph.warm_path(graph.ME, p.id)
+    state_warm[lead.id] = hops
+    product = state.intake.product_name if state.intake else "Tenki"
+    product_url = state.intake.product_url if state.intake else "https://tenki.cloud"
+    rules = PERSONA_RULES.get("c-level" if "c" in p.seniority.lower()[:1] else "ic" if p.seniority.lower() == "ic" else "director")
+    prompt = json.dumps({"variant": lead.variant, "product": product, "product_url": product_url, "prospect": {"name": p.name, "title": p.title, "company": co.name},
+                         "signal": {"type": sig.type, "summary": sig.summary, "date": sig.date, "source_url": sig.source.url, "quote": sig.source.quote},
+                         "warm_path": [h.model_dump() for h in hops], "persona_rules": rules})
+    fb = lambda: _fallback(p, co, sig, hops, lead.variant, product, product_url)
+    data = llm.json_call("builder", COPY_SYSTEM, prompt, fb)[0] if use_llm else fb()
+    if not isinstance(data, dict) or len(data.get("touches", [])) < 3:
+        data = _fallback(p, co, sig, hops, lead.variant, product, product_url)
+    # replace previous drafts for this lead (keep sent ones)
+    for tid in [k for k, t in state.touches.items() if t.lead_id == lead_id and t.status != "sent"]:
+        del state.touches[tid]
+    out = []
+    for raw in data["touches"][:3]:
+        t = Touch(id=state.new_id("t"), lead_id=lead_id, step=int(raw.get("step", len(out) + 1)), channel="linkedin" if raw.get("channel") == "linkedin" else "email",
+                  subject=raw.get("subject") if raw.get("channel") != "linkedin" else None, body=raw["body"], signal_id=sig.id, variant=lead.variant,
+                  status="draft", review=Review(verdict="pass", notes=""), security=Security(verdict="pass", notes=""))
+        check(t, lead)
+        state.touches[t.id] = t
+        out.append(t)
+    state.log("ai", "drafted", f"3 touches (variant {lead.variant}) citing {sig.source.url}", agent="builder", lead_id=lead_id)
+    thinking.emit("builder", "handoff", f"Builder → HITL queue: {len(out)} drafts await human approval")
+    return out
+
+
+def get_touch(tid: str) -> Touch:
+    t = state.touches.get(tid)
+    if not t:
+        raise HTTPException(404, f"touch {tid} not found")
+    return t
+
+
+def review_touch(tid: str, action: str, actor: str, body: str | None, subject: str | None) -> Touch:
+    t = get_touch(tid)
+    if t.status == "sent":
+        raise HTTPException(409, "already sent")
+    lead = pipeline.get_lead(t.lead_id)
+    if action == "approve":
+        t.status = "approved"
+    elif action == "reject":
+        t.status = "rejected"
+    else:
+        if body is not None:
+            t.body = body
+        if subject is not None:
+            t.subject = subject
+        t.status = "edited"
+        check(t, lead)
+    state.log(actor, f"touch_{action}", f"{t.id} step {t.step} ({t.channel}) → {t.status}", agent=None, lead_id=t.lead_id)
+    return t
+
+
+def _sendgrid(subject: str, body: str) -> tuple[bool, str]:
+    key, frm, inbox = os.getenv("SENDGRID_API_KEY"), os.getenv("SENDGRID_FROM"), os.getenv("DEMO_INBOX")
+    if not (key and frm and inbox):
+        return False, "simulated (no SENDGRID_API_KEY/SENDGRID_FROM/DEMO_INBOX)"
+    r = httpx.post("https://api.sendgrid.com/v3/mail/send", headers={"Authorization": f"Bearer {key}"}, timeout=15, json={
+        "personalizations": [{"to": [{"email": inbox}]}], "from": {"email": frm}, "subject": subject,
+        "content": [{"type": "text/plain", "value": body}],
+        "tracking_settings": {"click_tracking": {"enable": False}, "open_tracking": {"enable": False}}})
+    if r.status_code >= 300:
+        raise HTTPException(502, f"SendGrid HTTP {r.status_code}: {r.text[:200]}")
+    return True, f"SendGrid → {inbox}"
+
+
+def send_touch(tid: str, actor: str = "rep") -> Touch:
+    t = get_touch(tid)
+    if t.status not in ("approved", "edited"):
+        raise HTTPException(409, f"touch is '{t.status}': only human-approved touches can be sent (HITL)")
+    if t.security.verdict != "pass":
+        raise HTTPException(422, f"security check failed: {t.security.notes}")
+    lead = pipeline.get_lead(t.lead_id)
+    p, co = state.people[lead.person_id], state.companies[lead.company_id]
+    if t.channel == "email":
+        billing.check("outreach_sent", agent="builder", lead_id=lead.id)
+        banner = f"[DEMO SEND — intended for {p.name}, {p.title} at {co.name}; delivered to the demo inbox only]\n\n"
+        live, how = _sendgrid(t.subject or "(no subject)", banner + t.body)
+        billing.meter("outreach_sent", lead_id=lead.id, touch_id=t.id, channel="email")
+    else:
+        how = "LinkedIn task created (copy-to-clipboard; no unofficial API)"
+    t.status = "sent"
+    graph.add_contacted(p.id, t.channel, t.id)
+    thinking.emit("builder", "handoff", f"Sent {t.id} step {t.step}: {how}")
+    state.log(actor, "sent", f"{t.id} step {t.step} via {t.channel}: {how}", lead_id=lead.id)
+    if lead.stage == "matched":
+        pipeline.move(lead.id, "contacted", "ai", agent="builder", why="first touch sent")
+    return t
